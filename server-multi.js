@@ -4,15 +4,55 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const { google } = require("googleapis");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ---- تحميل بيانات المتاجر ----
+// ============================================================
+// Google Sheets Setup
+// ============================================================
+const SHEET_ID = process.env.SHEET_ID || "1H9F_rf4FRsUNom2L5vMMp_CWWl5NXH7rg7qOt-oa66s";
+const SHEET_NAME = "جدول الطلبات";
+
+async function getSheets() {
+  const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS || "{}");
+  const auth = new google.auth.GoogleAuth({
+    credentials,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+  return google.sheets({ version: "v4", auth });
+}
+
+async function saveOrder(storeId, storeName, phone, name, product, address, notes) {
+  try {
+    const sheets = await getSheets();
+    const time = new Date().toLocaleString("ar-DZ", { timeZone: "Africa/Algiers" });
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: `${SHEET_NAME}!A:G`,
+      valueInputOption: "RAW",
+      requestBody: {
+        values: [[time, phone, name, product, address, notes, storeName]],
+      },
+    });
+    console.log(`✅ طلب محفوظ: ${name} - ${product}`);
+    return true;
+  } catch (err) {
+    console.error("Sheets error:", err.message);
+    return false;
+  }
+}
+
+// ============================================================
+// المتاجر
+// ============================================================
 const STORES = JSON.parse(fs.readFileSync(path.join(__dirname, "stores.json"), "utf8"));
 
-// ---- Groq ----
+// ============================================================
+// Groq
+// ============================================================
 async function askGroq(systemPrompt, messages) {
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
@@ -22,7 +62,7 @@ async function askGroq(systemPrompt, messages) {
     },
     body: JSON.stringify({
       model: "llama-3.1-8b-instant",
-      max_tokens: 400,
+      max_tokens: 500,
       temperature: 0.7,
       messages: [{ role: "system", content: systemPrompt }, ...messages],
     }),
@@ -32,23 +72,113 @@ async function askGroq(systemPrompt, messages) {
   return data.choices?.[0]?.message?.content || "عذراً، حاول مرة أخرى.";
 }
 
-// ---- API لكل متجر ----
+// ============================================================
+// كشف الطلب وحفظه في Sheets
+// ============================================================
+async function detectAndSaveOrder(storeId, storeName, phone, messages) {
+  const lastMessages = messages.slice(-6);
+  const conversation = lastMessages.map(m => `${m.role === "user" ? "زبون" : "بوت"}: ${m.content}`).join("\n");
+
+  const detectionPrompt = `تحليل هذه المحادثة واستخراج معلومات الطلب إذا وُجد طلب مكتمل.
+أجب بـ JSON فقط بهذا الشكل:
+{"hasOrder": true/false, "name": "", "product": "", "address": "", "notes": ""}
+
+إذا لم تكتمل المعلومات أجب: {"hasOrder": false}
+
+المحادثة:
+${conversation}`;
+
+  try {
+    const result = await askGroq(detectionPrompt, [{ role: "user", content: "استخرج معلومات الطلب" }]);
+    const clean = result.replace(/```json|```/g, "").trim();
+    const order = JSON.parse(clean);
+    if (order.hasOrder && order.name && order.product) {
+      await saveOrder(storeId, storeName, phone, order.name, order.product, order.address || "", order.notes || "");
+      return true;
+    }
+  } catch (err) {
+    console.log("Order detection skipped:", err.message);
+  }
+  return false;
+}
+
+// ============================================================
+// تاريخ المحادثات
+// ============================================================
+const conversations = {};
+
+// ============================================================
+// WhatsApp
+// ============================================================
+async function sendWhatsApp(to, message) {
+  const instance = process.env.ULTRAMSG_INSTANCE;
+  const token = process.env.ULTRAMSG_TOKEN;
+  if (!instance || !token) return;
+  await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ token, to, body: message }),
+  });
+}
+
+// ============================================================
+// API - Website Chatbot
+// ============================================================
 app.post("/store/:storeId/chat", async (req, res) => {
   const { storeId } = req.params;
-  const { messages } = req.body;
+  const { messages, phone } = req.body;
   const store = STORES[storeId];
   if (!store) return res.status(404).json({ error: "Store not found" });
   if (!messages || !Array.isArray(messages))
     return res.status(400).json({ error: "messages required" });
   try {
     const reply = await askGroq(store.prompt, messages);
+    // كشف الطلب وحفظه
+    const allMessages = [...messages, { role: "assistant", content: reply }];
+    await detectAndSaveOrder(storeId, store.name, phone || "موقع الويب", allMessages);
     res.json({ reply, store: { name: store.name, emoji: store.emoji } });
   } catch (err) {
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ---- صفحة كل متجر ----
+// ============================================================
+// WhatsApp Webhook
+// ============================================================
+app.post("/webhook", async (req, res) => {
+  res.sendStatus(200);
+  const data = req.body?.data;
+  if (!data || data.type !== "chat" || data.fromMe || data.from?.includes("@g.us")) return;
+  const sender = data.from;
+  const text = data.body?.trim();
+  if (!text) return;
+  console.log(`📨 واتساب من ${sender}: ${text}`);
+
+  // افتراضياً استخدم أول متجر — يمكن تخصيصه لاحقاً
+  const storeId = process.env.DEFAULT_STORE || "9amis";
+  const store = STORES[storeId];
+  if (!store) return;
+
+  if (!conversations[sender]) conversations[sender] = [];
+  conversations[sender].push({ role: "user", content: text });
+  if (conversations[sender].length > 10)
+    conversations[sender] = conversations[sender].slice(-10);
+
+  try {
+    const reply = await askGroq(store.prompt, conversations[sender]);
+    conversations[sender].push({ role: "assistant", content: reply });
+    // كشف الطلب وحفظه
+    await detectAndSaveOrder(storeId, store.name, sender, conversations[sender]);
+    await sendWhatsApp(sender, reply);
+    console.log(`✅ رد: ${reply}\n`);
+  } catch (err) {
+    await sendWhatsApp(sender, "عذراً، حدث خطأ مؤقت.");
+  }
+});
+
+// ============================================================
+// صفحة كل متجر (نفس الكود السابق)
+// ============================================================
 app.get("/store/:storeId", (req, res) => {
   const { storeId } = req.params;
   const store = STORES[storeId];
@@ -121,86 +251,47 @@ input::placeholder{color:rgba(255,255,255,.2)}
   </div>
   <div class="footer">مساعد ذكي مخصص لـ ${store.name}</div>
 </div>
-
 <script>
-const STORE_ID = "${storeId}";
-const API_URL = "/store/" + STORE_ID + "/chat";
-const SUGGESTED = ${JSON.stringify(store.suggestions)};
-let history = [], loading = false;
-const msgsEl = document.getElementById("msgs");
-const inp = document.getElementById("inp");
-const btn = document.getElementById("btn");
-
-function scroll() { msgsEl.scrollTop = msgsEl.scrollHeight; }
-
-function addMsg(role, text) {
-  const row = document.createElement("div");
-  row.className = "msg-row " + (role === "user" ? "user" : "bot");
-  if (role === "assistant") {
-    const av = document.createElement("div");
-    av.className = "bot-avatar"; av.textContent = "${store.emoji}";
-    row.appendChild(av);
-  }
-  const b = document.createElement("div");
-  b.className = "bubble " + (role === "user" ? "user" : "bot");
-  b.textContent = text;
-  row.appendChild(b);
-  msgsEl.appendChild(row); scroll();
+const STORE_ID="${storeId}",API_URL="/store/"+STORE_ID+"/chat";
+const SUGGESTED=${JSON.stringify(store.suggestions)};
+let history=[],loading=false;
+const msgsEl=document.getElementById("msgs"),inp=document.getElementById("inp"),btn=document.getElementById("btn");
+function scroll(){msgsEl.scrollTop=msgsEl.scrollHeight}
+function addMsg(role,text){
+  const row=document.createElement("div");row.className="msg-row "+(role==="user"?"user":"bot");
+  if(role==="assistant"){const av=document.createElement("div");av.className="bot-avatar";av.textContent="${store.emoji}";row.appendChild(av);}
+  const b=document.createElement("div");b.className="bubble "+(role==="user"?"user":"bot");b.textContent=text;
+  row.appendChild(b);msgsEl.appendChild(row);scroll();
 }
-
-function addTyping() {
-  const row = document.createElement("div");
-  row.className = "msg-row bot"; row.id = "typing";
-  const av = document.createElement("div");
-  av.className = "bot-avatar"; av.textContent = "${store.emoji}";
-  row.appendChild(av);
-  const b = document.createElement("div");
-  b.className = "bubble bot";
-  b.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
-  row.appendChild(b);
-  msgsEl.appendChild(row); scroll();
+function addTyping(){
+  const row=document.createElement("div");row.className="msg-row bot";row.id="typing";
+  const av=document.createElement("div");av.className="bot-avatar";av.textContent="${store.emoji}";row.appendChild(av);
+  const b=document.createElement("div");b.className="bubble bot";
+  b.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
+  row.appendChild(b);msgsEl.appendChild(row);scroll();
 }
-
-function removeTyping() { const t = document.getElementById("typing"); if(t) t.remove(); }
-
-function showSuggested() {
-  const d = document.createElement("div"); d.id = "suggested";
-  d.innerHTML = '<div class="sug-pills">' + SUGGESTED.map(q => '<button class="pill" onclick="sendMsg(\\'' + q + '\\')">' + q + '</button>').join("") + '</div>';
+function removeTyping(){const t=document.getElementById("typing");if(t)t.remove();}
+function showSuggested(){
+  const d=document.createElement("div");d.id="suggested";
+  d.innerHTML='<div class="sug-pills">'+SUGGESTED.map(q=>'<button class="pill" onclick="sendMsg(\''+q+'\')">'+q+'</button>').join("")+'</div>';
   msgsEl.appendChild(d);
 }
-
-function updateBtn() {
-  btn.className = "send-btn " + (inp.value.trim() && !loading ? "active" : "inactive");
+function updateBtn(){btn.className="send-btn "+(inp.value.trim()&&!loading?"active":"inactive");}
+async function sendMsg(text){
+  const msg=text||inp.value.trim();if(!msg||loading)return;
+  inp.value="";const sug=document.getElementById("suggested");if(sug)sug.remove();updateBtn();
+  history.push({role:"user",content:msg});addMsg("user",msg);loading=true;addTyping();
+  try{
+    const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:history})});
+    const data=await res.json();const reply=data.reply||"عذراً حاول مرة أخرى.";
+    history.push({role:"assistant",content:reply});removeTyping();addMsg("assistant",reply);
+  }catch{removeTyping();addMsg("assistant","خطأ في الاتصال.");}
+  loading=false;updateBtn();inp.focus();
 }
-
-async function sendMsg(text) {
-  const msg = text || inp.value.trim();
-  if (!msg || loading) return;
-  inp.value = "";
-  const sug = document.getElementById("suggested"); if(sug) sug.remove();
-  updateBtn();
-  history.push({ role: "user", content: msg });
-  addMsg("user", msg);
-  loading = true; addTyping();
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: history }),
-    });
-    const data = await res.json();
-    const reply = data.reply || "عذراً، حاول مرة أخرى.";
-    history.push({ role: "assistant", content: reply });
-    removeTyping(); addMsg("assistant", reply);
-  } catch { removeTyping(); addMsg("assistant", "خطأ في الاتصال."); }
-  loading = false; updateBtn(); inp.focus();
-}
-
-inp.addEventListener("input", updateBtn);
-inp.addEventListener("keydown", e => { if(e.key==="Enter") sendMsg(); });
-btn.addEventListener("click", () => sendMsg());
-
-addMsg("assistant", "مرحباً بك في ${store.name} ${store.emoji}\\nأنا مساعدك الذكي — اسألني عن أي شيء!");
+inp.addEventListener("input",updateBtn);
+inp.addEventListener("keydown",e=>{if(e.key==="Enter")sendMsg();});
+btn.addEventListener("click",()=>sendMsg());
+addMsg("assistant","مرحباً بك في ${store.name} ${store.emoji}\\nأنا مساعدك الذكي — اسألني عن أي شيء!");
 showSuggested();
 </script>
 </body>
@@ -208,7 +299,7 @@ showSuggested();
   res.send(html);
 });
 
-// ---- الصفحة الرئيسية — قائمة المتاجر ----
+// ---- الصفحة الرئيسية ----
 app.get("/", (req, res) => {
   const list = Object.entries(STORES).map(([id, s]) =>
     `<a href="/store/${id}" style="display:block;padding:16px;margin:8px 0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:white;text-decoration:none;font-family:Cairo,sans-serif;">
@@ -222,15 +313,10 @@ app.get("/", (req, res) => {
 </head><body><h2 style="color:white;font-family:Cairo;margin-bottom:20px;">🏪 المتاجر المتاحة</h2>${list}</body></html>`);
 });
 
-// ---- WhatsApp Webhook (اختياري) ----
-app.post("/webhook", async (req, res) => {
-  res.sendStatus(200);
-});
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Multi-Store Server: http://localhost:${PORT}`);
+  console.log(`✅ Multi-Store + Google Sheets: http://localhost:${PORT}`);
   Object.entries(STORES).forEach(([id, s]) => {
-    console.log(`  ${s.emoji} ${s.name}: http://localhost:${PORT}/store/${id}`);
+    console.log(`  ${s.emoji} ${s.name}: /store/${id}`);
   });
 });
