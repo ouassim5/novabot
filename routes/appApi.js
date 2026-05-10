@@ -60,7 +60,7 @@ async function assignInstanceIfNeeded(store) {
     ultraMsgInstanceId: { $in: pool },
     _id: { $ne: store._id },
   });
-  const available = pool.find(instanceId => !used.includes(instanceId));
+  const available = pool.find(instanceId => !used.includes(instanceId)) || pool[0];
   if (!available) throw new Error("No free UltraMsg instance available");
 
   store.ultraMsgInstanceId = available;
