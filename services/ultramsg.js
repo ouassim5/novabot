@@ -42,7 +42,7 @@ async function getQrImage(instanceId) {
 async function getInstanceStatus(instanceId) {
   const token = requireUltraMsg(instanceId);
   const response = await fetch(
-    `https://api.ultramsg.com/${instanceId}/instance/status?${new URLSearchParams({ token })}`
+    `https://api.ultramsg.com/${instanceId}/instance/qr?${new URLSearchParams({ token })}`
   );
   const text = await response.text();
   try {
