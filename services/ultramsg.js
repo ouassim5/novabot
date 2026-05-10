@@ -83,3 +83,22 @@ module.exports = {
   sendMessage,
   updateWebhook,
 };
+
+async function logoutInstance(instanceId) {
+  const token = requireUltraMsg(instanceId);
+  const response = await fetch(`https://api.ultramsg.com/${instanceId}/instance/logout`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({ token }),
+  });
+  return response.json().catch(() => ({}));
+}
+
+module.exports = {
+  getInstancePool,
+  getInstanceStatus,
+  getQrImage,
+  logoutInstance,  // ← أضف هذا
+  sendMessage,
+  updateWebhook,
+};

@@ -194,3 +194,18 @@ router.get("/stores/:storeId/whatsapp/status", findOwnedStore, async (req, res) 
 });
 
 module.exports = router;
+
+const { logoutInstance } = require("../services/ultramsg");
+
+router.post("/stores/:storeId/whatsapp/logout", findOwnedStore, async (req, res) => {
+  try {
+    const instanceId = req.store.ultraMsgInstanceId;
+    if (!instanceId) return res.status(400).json({ error: "No instance" });
+    await logoutInstance(instanceId);
+    req.store.whatsappStatus = "qr";
+    await req.store.save();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
