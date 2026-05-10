@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>لوحة التحكم - NovaBOT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/dashboard.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <strong>NovaBOT SaaS</strong>
+      <span><%= user.email %></span>
+    </div>
+    <nav>
+      <a href="/dashboard/stores/new">متجر جديد</a>
+      <form method="post" action="/auth/logout"><button type="submit">خروج</button></form>
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="section-head">
+      <div>
+        <h1>لوحة التحكم</h1>
+        <p>إحصائيات اليوم، المتاجر، والطلبات المستخرجة تلقائيًا.</p>
+      </div>
+      <a class="primary-link" href="/dashboard/stores/new">إنشاء متجر</a>
+    </section>
+
+    <section class="store-grid">
+      <% if (!stores.length) { %>
+        <div class="empty">لا توجد متاجر بعد. أنشئ أول متجر للبدء.</div>
+      <% } %>
+      <% stores.forEach(store => {
+        const analytics = analyticsByStore.get(store._id.toString());
+        const conversations = analytics?.conversationIds?.length || 0;
+        const ordersToday = analytics?.orderCount || 0;
+        const messagesToday = analytics?.messageCount || 0;
+        const topQuestion = getTopQuestion(analytics);
+        const whatsappReady = Boolean(store.whatsappPhone);
+      %>
+        <article class="store-card">
+          <div class="store-title">
+            <span><%= store.emoji %></span>
+            <div>
+              <h2><%= store.storeName %></h2>
+              <p>/<%= store.slug %></p>
+            </div>
+          </div>
+          <div class="metrics">
+            <div><strong><%= conversations %></strong><span>محادثات اليوم</span></div>
+            <div><strong><%= messagesToday %></strong><span>رسائل اليوم</span></div>
+            <div><strong><%= ordersToday %></strong><span>طلبات اليوم</span></div>
+          </div>
+          <div class="metrics">
+            <div><strong><%= store.totalMessages || 0 %></strong><span>كل الرسائل</span></div>
+            <div><strong><%= store.totalOrders || 0 %></strong><span>كل الطلبات</span></div>
+            <div><strong><%= store.whatsappPhone || "-" %></strong><span>واتساب المتجر</span></div>
+          </div>
+          <p class="top-question">أكثر سؤال: <%= topQuestion %></p>
+          <p class="<%= whatsappReady ? 'ok' : 'warn' %>">
+            واتساب: <%= whatsappReady ? 'مربوط' : 'غير مكتمل' %>
+          </p>
+          <p class="top-question">Webhook: <%= baseUrl %>/webhook/<%= store.slug %></p>
+          <div class="actions">
+            <a href="/store/<%= store.slug %>">فتح البوت</a>
+            <a href="/webhook/<%= store.slug %>">Webhook</a>
+          </div>
+        </article>
+      <% }) %>
+    </section>
+
+    <section class="orders">
+      <h2>آخر الطلبات</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>الوقت</th>
+              <th>المتجر</th>
+              <th>الزبون</th>
+              <th>الهاتف</th>
+              <th>المنتج</th>
+              <th>العنوان</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (!orders.length) { %>
+              <tr><td colspan="6">لا توجد طلبات بعد.</td></tr>
+            <% } %>
+            <% orders.forEach(order => { %>
+              <tr>
+                <td><%= order.createdAt.toLocaleString("ar-DZ") %></td>
+                <td><%= order.storeId?.storeName || "-" %></td>
+                <td><%= order.customerName %></td>
+                <td><%= order.phone || "-" %></td>
+                <td><%= order.product %></td>
+                <td><%= order.address %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

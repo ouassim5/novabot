@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaBOT - منصة شات بوت للمتاجر</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              300: "#f2d16b",
+              400: "#d4af37",
+              500: "#b98f22"
+            }
+          },
+          fontFamily: {
+            cairo: ["Cairo", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="bg-black text-white font-cairo">
+  <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur">
+    <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+      <a href="/" class="flex items-center gap-3">
+        <span class="grid h-10 w-10 place-items-center rounded-lg bg-gold-400 text-xl text-black">N</span>
+        <span class="text-lg font-extrabold tracking-wide">NovaBOT</span>
+      </a>
+      <nav class="hidden items-center gap-7 text-sm text-white/70 md:flex">
+        <a href="#how" class="hover:text-gold-300">كيف يعمل</a>
+        <a href="#pricing" class="hover:text-gold-300">الأسعار</a>
+        <a href="/auth/login" class="hover:text-gold-300">دخول</a>
+      </nav>
+      <a href="/auth/signup" class="rounded-lg bg-gold-400 px-4 py-2 text-sm font-bold text-black hover:bg-gold-300">ابدأ الآن</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="relative min-h-screen overflow-hidden pt-28">
+      <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-25"></div>
+      <div class="absolute inset-0 bg-black/70"></div>
+      <div class="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-12 lg:grid-cols-[1.05fr_.95fr]">
+        <div class="max-w-3xl">
+          <span class="mb-5 inline-flex rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-2 text-sm font-semibold text-gold-300">
+            منصة SaaS مركزية للشات بوت التجاري
+          </span>
+          <h1 class="text-4xl font-extrabold leading-tight md:text-6xl">
+            حوّل كل متجر إلى مساعد مبيعات ذكي يعمل على الموقع وواتساب.
+          </h1>
+          <p class="mt-6 max-w-2xl text-lg leading-9 text-white/70">
+            NovaBOT يربط المتاجر بنظام رد تلقائي يفهم الدارجة، يستخرج الطلبات، ويحفظ الإحصائيات من لوحة واحدة بلون وهوية احترافية.
+          </p>
+          <div class="mt-9 flex flex-wrap gap-3">
+            <a href="/auth/signup" class="rounded-lg bg-gold-400 px-6 py-3 font-bold text-black hover:bg-gold-300">أنشئ حسابك</a>
+            <a href="/dashboard" class="rounded-lg border border-white/15 px-6 py-3 font-bold text-white hover:border-gold-400/60 hover:text-gold-300">افتح لوحة التحكم</a>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-gold-400/20 bg-black/75 p-4 shadow-2xl shadow-gold-400/10">
+          <div class="rounded-xl border border-white/10 bg-[#0d0d0d] p-5">
+            <div class="flex items-center justify-between border-b border-white/10 pb-4">
+              <div>
+                <p class="text-sm text-white/50">لوحة المتجر</p>
+                <h2 class="text-xl font-bold text-gold-300">القميص الذهبي</h2>
+              </div>
+              <span class="rounded-lg bg-gold-400 px-3 py-2 text-black">👑</span>
+            </div>
+            <div class="mt-5 grid grid-cols-3 gap-3">
+              <div class="rounded-lg bg-white/5 p-4"><p class="text-2xl font-extrabold">87</p><span class="text-xs text-white/45">رسائل</span></div>
+              <div class="rounded-lg bg-white/5 p-4"><p class="text-2xl font-extrabold">14</p><span class="text-xs text-white/45">طلبات</span></div>
+              <div class="rounded-lg bg-white/5 p-4"><p class="text-2xl font-extrabold">4</p><span class="text-xs text-white/45">متاجر</span></div>
+            </div>
+            <div class="mt-5 space-y-3">
+              <div class="rounded-xl bg-white/5 p-4 text-sm text-white/75">الزبون: حاب نطلب قميص أبيض، اسمي محمد، العنوان وهران.</div>
+              <div class="mr-auto max-w-[85%] rounded-xl bg-gold-400 p-4 text-sm font-semibold text-black">تم تأكيد الطلب، وصلتنا معلوماتك وسيتم التواصل معك.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="how" class="border-t border-white/10 bg-[#050505] py-24">
+      <div class="mx-auto max-w-7xl px-5">
+        <div class="max-w-2xl">
+          <p class="font-bold text-gold-300">آلية العمل</p>
+          <h2 class="mt-3 text-3xl font-extrabold md:text-4xl">من متجر جديد إلى بوت يعمل خلال دقائق.</h2>
+        </div>
+        <div class="mt-12 grid gap-4 md:grid-cols-3">
+          <div class="rounded-xl border border-white/10 bg-white/[.04] p-6">
+            <span class="text-3xl font-extrabold text-gold-400">01</span>
+            <h3 class="mt-5 text-xl font-bold">أنشئ المتجر</h3>
+            <p class="mt-3 leading-8 text-white/60">العميل يدخل اسم المتجر، اسم البوت، رقم واتساب، الألوان، والـ System Prompt فقط.</p>
+          </div>
+          <div class="rounded-xl border border-white/10 bg-white/[.04] p-6">
+            <span class="text-3xl font-extrabold text-gold-400">02</span>
+            <h3 class="mt-5 text-xl font-bold">ردود ذكية مركزية</h3>
+            <p class="mt-3 leading-8 text-white/60">السيرفر يستخدم مفاتيح Groq وUltraMsg الخاصة بالمنصة ويربطها بكل متجر تلقائيًا.</p>
+          </div>
+          <div class="rounded-xl border border-white/10 bg-white/[.04] p-6">
+            <span class="text-3xl font-extrabold text-gold-400">03</span>
+            <h3 class="mt-5 text-xl font-bold">طلبات وإحصائيات</h3>
+            <p class="mt-3 leading-8 text-white/60">كل رسالة وكل طلب يتم تتبعه داخل لوحة التحكم مع حفظ الطلبات في قاعدة البيانات.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing" class="bg-black py-24">
+      <div class="mx-auto max-w-7xl px-5">
+        <div class="text-center">
+          <p class="font-bold text-gold-300">الاشتراكات</p>
+          <h2 class="mt-3 text-3xl font-extrabold md:text-4xl">أسعار واضحة قابلة للتطوير.</h2>
+        </div>
+        <div class="mt-12 grid gap-5 lg:grid-cols-3">
+          <div class="rounded-xl border border-white/10 bg-white/[.035] p-7">
+            <h3 class="text-xl font-bold">Starter</h3>
+            <p class="mt-2 text-white/55">للمتاجر الصغيرة</p>
+            <p class="mt-6 text-4xl font-extrabold">2,900 دج</p>
+            <ul class="mt-6 space-y-3 text-white/70">
+              <li>متجر واحد</li>
+              <li>واجهة شات بوت</li>
+              <li>لوحة طلبات أساسية</li>
+            </ul>
+          </div>
+          <div class="rounded-xl border border-gold-400 bg-gold-400 p-7 text-black shadow-2xl shadow-gold-400/20">
+            <h3 class="text-xl font-extrabold">Growth</h3>
+            <p class="mt-2 text-black/65">الأكثر طلبًا</p>
+            <p class="mt-6 text-4xl font-extrabold">5,900 دج</p>
+            <ul class="mt-6 space-y-3 text-black/75">
+              <li>حتى 5 متاجر</li>
+              <li>WhatsApp Webhook</li>
+              <li>إحصائيات ورسائل وطلبات</li>
+            </ul>
+          </div>
+          <div class="rounded-xl border border-white/10 bg-white/[.035] p-7">
+            <h3 class="text-xl font-bold">Agency</h3>
+            <p class="mt-2 text-white/55">للوكالات وأصحاب عدة عملاء</p>
+            <p class="mt-6 text-4xl font-extrabold">حسب الطلب</p>
+            <ul class="mt-6 space-y-3 text-white/70">
+              <li>متاجر غير محدودة</li>
+              <li>إعدادات مخصصة</li>
+              <li>دعم نشر على Railway</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="border-t border-white/10 bg-[#050505] py-8 text-center text-sm text-white/45">
+    NovaBOT © 2026 - منصة شات بوت للمتاجر
+  </footer>
+</body>
+</html>

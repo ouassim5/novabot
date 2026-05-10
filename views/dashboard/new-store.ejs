@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>متجر جديد - NovaBOT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/dashboard.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div><strong>NovaBOT SaaS</strong><span>إنشاء متجر</span></div>
+    <nav><a href="/dashboard">رجوع</a></nav>
+  </header>
+  <main class="page narrow">
+    <section class="section-head">
+      <div>
+        <h1>متجر جديد</h1>
+        <p>املأ بيانات المتجر والبوت. مفاتيح Groq وUltraMsg تدار مركزيًا من المنصة.</p>
+      </div>
+    </section>
+    <% if (error) { %><div class="alert"><%= error %></div><% } %>
+    <form class="store-form" method="post" action="/dashboard/stores">
+      <div class="two">
+        <label>اسم المتجر<input name="storeName" value="<%= values.storeName || '' %>" required /></label>
+        <label>اسم البوت<input name="botName" value="<%= values.botName || '' %>" required /></label>
+      </div>
+      <label>رقم واتساب المتجر<input name="whatsappPhone" value="<%= values.whatsappPhone || '' %>" required /></label>
+      <label>System Prompt<textarea name="prompt" rows="9" required><%= values.prompt || '' %></textarea></label>
+      <label>Suggestions<textarea name="suggestions" rows="4" placeholder="كل اقتراح في سطر"><%= values.suggestions || '' %></textarea></label>
+      <div class="three">
+        <label>اللون<input name="primaryColor" type="color" value="<%= values.primaryColor || '#d4af37' %>" /></label>
+        <label>الخلفية<input name="backgroundColor" type="color" value="<%= values.backgroundColor || '#0a0800' %>" /></label>
+        <label>Emoji<input name="emoji" value="<%= values.emoji || '🤖' %>" /></label>
+      </div>
+      <button type="submit">حفظ المتجر</button>
+    </form>
+  </main>
+</body>
+</html>

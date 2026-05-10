@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NovaBOT - بوت واتساب ذكي للمتاجر</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold: { 300: "#f2d16b", 400: "#d4af37", 500: "#b98f22" }
+          },
+          fontFamily: { cairo: ["Cairo", "sans-serif"] }
+        }
+      }
+    };
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body class="min-h-screen bg-black text-white font-cairo">
+  <script>
+    window.NOVABOT_USER = <%- JSON.stringify(user ? { email: user.email } : null) %>;
+  </script>
+
+  <div class="min-h-screen">
+    <header class="sticky top-0 z-50 border-b border-white/10 bg-black/85 backdrop-blur">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+        <a href="/app" class="flex items-center gap-3">
+          <span class="grid h-10 w-10 place-items-center rounded-lg bg-gold-400 text-lg font-extrabold text-black">N</span>
+          <div>
+            <p class="text-base font-extrabold">NovaBOT</p>
+            <p class="text-xs text-white/45">WhatsApp AI SaaS</p>
+          </div>
+        </a>
+        <nav class="flex items-center gap-2 text-sm">
+          <a href="#pricing" class="hidden rounded-lg px-3 py-2 text-white/70 hover:text-gold-300 sm:block">الأسعار</a>
+          <% if (user) { %>
+            <form method="post" action="/auth/logout"><button class="rounded-lg border border-white/10 px-3 py-2 text-white/70">خروج</button></form>
+          <% } else { %>
+            <a href="#login" class="rounded-lg border border-white/10 px-3 py-2 text-white/70">دخول</a>
+            <a href="#signup" class="rounded-lg bg-gold-400 px-3 py-2 font-bold text-black">ابدأ</a>
+          <% } %>
+        </nav>
+      </div>
+    </header>
+
+    <% if (!user) { %>
+      <main>
+        <section class="relative overflow-hidden">
+          <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-20"></div>
+          <div class="absolute inset-0 bg-gradient-to-b from-black/75 via-black/85 to-black"></div>
+          <div class="relative mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-[1.1fr_.9fr] md:py-24">
+            <div class="flex flex-col justify-center">
+              <span class="mb-5 w-fit rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-2 text-sm font-semibold text-gold-300">
+                حوّل رقمك الشخصي إلى بوت ذكي
+              </span>
+              <h1 class="text-4xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
+                متجر يرد، يقنع، ويستقبل الطلبات على واتساب تلقائيًا.
+              </h1>
+              <p class="mt-6 max-w-2xl text-base leading-8 text-white/65 sm:text-lg">
+                NovaBOT يربط رقم واتساب التاجر عبر QR Code، يقرأ Prompt المتجر، ويرد على العملاء بذكاء عبر Groq مع تتبع الطلبات والإحصائيات.
+              </p>
+              <div class="mt-8 flex flex-wrap gap-3">
+                <a href="#signup" class="rounded-lg bg-gold-400 px-6 py-3 font-bold text-black hover:bg-gold-300">جرّب الآن</a>
+                <a href="#how" class="rounded-lg border border-white/15 px-6 py-3 font-bold text-white hover:border-gold-400/60">كيف يعمل؟</a>
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-gold-400/20 bg-black/75 p-4 shadow-2xl shadow-gold-400/10">
+              <div class="rounded-xl border border-white/10 bg-[#101010] p-5">
+                <div class="flex items-center justify-between border-b border-white/10 pb-4">
+                  <div>
+                    <p class="text-sm text-white/45">WhatsApp Sync</p>
+                    <h2 class="text-xl font-bold text-gold-300">رقم التاجر أصبح بوت</h2>
+                  </div>
+                  <span class="rounded-lg bg-gold-400 px-3 py-2 text-black">⚡</span>
+                </div>
+                <div class="mt-5 grid gap-3 sm:grid-cols-3">
+                  <div class="rounded-lg bg-white/5 p-4"><p class="text-2xl font-extrabold">QR</p><span class="text-xs text-white/45">مسح سريع</span></div>
+                  <div class="rounded-lg bg-white/5 p-4"><p class="text-2xl font-extrabold">AI</p><span class="text-xs text-white/45">Prompt خاص</span></div>
+                  <div class="rounded-lg bg-white/5 p-4"><p class="text-2xl font-extrabold">24/7</p><span class="text-xs text-white/45">رد تلقائي</span></div>
+                </div>
+                <div class="mt-5 space-y-3 text-sm">
+                  <div class="rounded-xl bg-white/5 p-4 text-white/75">العميل: واش السعر والتوصيل؟</div>
+                  <div class="mr-auto max-w-[88%] rounded-xl bg-gold-400 p-4 font-semibold text-black">كاين توصيل، ونقدر نأكدلك الطلب إذا تبعث الاسم والعنوان.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="how" class="border-y border-white/10 bg-[#050505] py-16">
+          <div class="mx-auto max-w-7xl px-4">
+            <h2 class="text-3xl font-extrabold">كيف يعمل؟</h2>
+            <div class="mt-8 grid gap-4 md:grid-cols-3">
+              <div class="rounded-xl border border-white/10 bg-white/[.04] p-6"><span class="text-3xl font-extrabold text-gold-400">01</span><h3 class="mt-4 font-bold">إعداد البوت</h3><p class="mt-2 leading-8 text-white/60">أدخل اسم البوت، Prompt، ألوان المتجر، واقتراحات الرد.</p></div>
+              <div class="rounded-xl border border-white/10 bg-white/[.04] p-6"><span class="text-3xl font-extrabold text-gold-400">02</span><h3 class="mt-4 font-bold">مسح QR</h3><p class="mt-2 leading-8 text-white/60">التاجر يمسح QR من هاتفه فيصبح رقمه مربوطًا بالبوت.</p></div>
+              <div class="rounded-xl border border-white/10 bg-white/[.04] p-6"><span class="text-3xl font-extrabold text-gold-400">03</span><h3 class="mt-4 font-bold">ردود وطلبات</h3><p class="mt-2 leading-8 text-white/60">كل رسالة تُرسل إلى Groq بالـ Prompt الصحيح، والطلبات تُستخرج تلقائيًا.</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="pricing" class="py-16">
+          <div class="mx-auto max-w-7xl px-4">
+            <div class="text-center"><p class="font-bold text-gold-300">الاشتراكات</p><h2 class="mt-2 text-3xl font-extrabold">خطط بسيطة للتجار والوكالات</h2></div>
+            <div class="mt-8 grid gap-4 md:grid-cols-3">
+              <div class="rounded-xl border border-white/10 bg-white/[.035] p-6"><h3 class="font-bold">Starter</h3><p class="mt-3 text-3xl font-extrabold">2,900 دج</p><p class="mt-3 text-white/55">متجر واحد + إحصائيات أساسية</p></div>
+              <div class="rounded-xl border border-gold-400 bg-gold-400 p-6 text-black"><h3 class="font-extrabold">Growth</h3><p class="mt-3 text-3xl font-extrabold">5,900 دج</p><p class="mt-3 text-black/65">عدة متاجر + WhatsApp Sync</p></div>
+              <div class="rounded-xl border border-white/10 bg-white/[.035] p-6"><h3 class="font-bold">Agency</h3><p class="mt-3 text-3xl font-extrabold">حسب الطلب</p><p class="mt-3 text-white/55">متاجر غير محدودة ودعم نشر</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="mx-auto grid max-w-5xl gap-4 px-4 pb-20 md:grid-cols-2">
+          <form id="login" method="post" action="/auth/login" class="rounded-xl border border-white/10 bg-white/[.04] p-6">
+            <h2 class="text-xl font-bold">دخول</h2>
+            <input name="email" type="email" required placeholder="البريد" class="mt-5 w-full rounded-lg border border-white/10 bg-black px-4 py-3 outline-none focus:border-gold-400" />
+            <input name="password" type="password" required placeholder="كلمة المرور" class="mt-3 w-full rounded-lg border border-white/10 bg-black px-4 py-3 outline-none focus:border-gold-400" />
+            <button class="mt-4 w-full rounded-lg bg-white px-4 py-3 font-bold text-black">دخول</button>
+          </form>
+          <form id="signup" method="post" action="/auth/signup" class="rounded-xl border border-gold-400/40 bg-gold-400/10 p-6">
+            <h2 class="text-xl font-bold text-gold-300">إنشاء حساب</h2>
+            <input name="email" type="email" required placeholder="البريد" class="mt-5 w-full rounded-lg border border-white/10 bg-black px-4 py-3 outline-none focus:border-gold-400" />
+            <input name="password" type="password" minlength="6" required placeholder="كلمة المرور" class="mt-3 w-full rounded-lg border border-white/10 bg-black px-4 py-3 outline-none focus:border-gold-400" />
+            <button class="mt-4 w-full rounded-lg bg-gold-400 px-4 py-3 font-bold text-black">ابدأ الآن</button>
+          </form>
+        </section>
+      </main>
+    <% } else { %>
+      <main class="mx-auto max-w-7xl px-4 py-6">
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p class="text-sm text-white/45"><%= user.email %></p>
+            <h1 class="text-3xl font-extrabold">لوحة التحكم</h1>
+          </div>
+          <a href="/store/" id="openStoreLink" class="hidden rounded-lg border border-gold-400/40 px-4 py-3 text-sm font-bold text-gold-300">فتح البوت</a>
+        </div>
+
+        <div class="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+          <section class="rounded-xl border border-white/10 bg-white/[.04] p-4 sm:p-6">
+            <div class="flex items-center justify-between gap-3">
+              <div><h2 class="text-xl font-bold">الإعدادات</h2><p class="text-sm text-white/45">اسم البوت، الـ Prompt، والألوان.</p></div>
+              <select id="storeSelect" class="max-w-[170px] rounded-lg border border-white/10 bg-black px-3 py-2 text-sm"></select>
+            </div>
+
+            <form id="settingsForm" class="mt-6 grid gap-4">
+              <div class="grid gap-4 sm:grid-cols-2">
+                <label class="text-sm text-white/65">اسم المتجر<input name="storeName" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400" required /></label>
+                <label class="text-sm text-white/65">اسم البوت<input name="botName" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400" required /></label>
+              </div>
+              <label class="text-sm text-white/65">رقم واتساب التاجر<input name="whatsappPhone" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400" required /></label>
+              <label class="text-sm text-white/65">System Prompt<textarea name="prompt" rows="6" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400" required></textarea></label>
+              <label class="text-sm text-white/65">Suggestions<textarea name="suggestions" rows="3" placeholder="كل اقتراح في سطر" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400"></textarea></label>
+              <div class="grid gap-4 sm:grid-cols-3">
+                <label class="text-sm text-white/65">اللون الأساسي<input name="primaryColor" type="color" class="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black p-1" /></label>
+                <label class="text-sm text-white/65">لون الخلفية<input name="backgroundColor" type="color" class="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black p-1" /></label>
+                <label class="text-sm text-white/65">الإيموجي<input name="emoji" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400" /></label>
+              </div>
+              <button class="rounded-lg bg-gold-400 px-5 py-3 font-bold text-black hover:bg-gold-300">حفظ الإعدادات</button>
+              <p id="settingsMsg" class="text-sm text-white/50"></p>
+            </form>
+          </section>
+
+          <aside class="grid gap-4">
+            <section class="rounded-xl border border-white/10 bg-white/[.04] p-4 sm:p-6">
+              <h2 class="text-xl font-bold">WhatsApp Sync</h2>
+              <p class="mt-2 text-sm leading-7 text-white/55">اضغط ربط الرقم ثم امسح QR من واتساب. بعد المصادقة يصبح رقمك هو البوت.</p>
+              <div class="mt-5 rounded-xl border border-white/10 bg-black p-4 text-center">
+                <img id="qrImage" alt="WhatsApp QR" class="mx-auto hidden h-56 w-56 rounded-lg bg-white object-contain p-2" />
+                <div id="qrEmpty" class="grid h-56 place-items-center rounded-lg border border-dashed border-white/15 text-sm text-white/45">QR يظهر هنا</div>
+              </div>
+              <div class="mt-4 flex flex-wrap gap-2">
+                <button id="syncBtn" class="rounded-lg bg-gold-400 px-4 py-3 font-bold text-black">ربط الرقم</button>
+                <button id="statusBtn" class="rounded-lg border border-white/10 px-4 py-3 font-bold text-white">تحديث الحالة</button>
+              </div>
+              <p id="syncMsg" class="mt-3 text-sm text-white/55"></p>
+              <p id="webhookText" class="mt-3 break-all rounded-lg bg-black p-3 text-xs text-white/45"></p>
+            </section>
+
+            <section class="rounded-xl border border-white/10 bg-white/[.04] p-4 sm:p-6">
+              <h2 class="text-xl font-bold">الإحصائيات</h2>
+              <div class="mt-4 grid grid-cols-2 gap-3">
+                <div class="rounded-lg bg-black p-4"><p id="todayConversations" class="text-3xl font-extrabold">0</p><span class="text-xs text-white/45">محادثات اليوم</span></div>
+                <div class="rounded-lg bg-black p-4"><p id="todayOrders" class="text-3xl font-extrabold">0</p><span class="text-xs text-white/45">طلبات مكتملة</span></div>
+                <div class="rounded-lg bg-black p-4"><p id="totalMessages" class="text-3xl font-extrabold">0</p><span class="text-xs text-white/45">كل الرسائل</span></div>
+                <div class="rounded-lg bg-black p-4"><p id="totalOrders" class="text-3xl font-extrabold">0</p><span class="text-xs text-white/45">كل الطلبات</span></div>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </main>
+    <% } %>
+  </div>
+
+  <% if (user) { %>
+    <script>
+      let appState = { stores: [], currentStore: null, baseUrl: "" };
+      const $ = (selector) => document.querySelector(selector);
+
+      async function api(path, options = {}) {
+        const response = await fetch(path, {
+          headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+          ...options
+        });
+        const contentType = response.headers.get("content-type") || "";
+        const payload = contentType.includes("application/json") ? await response.json() : await response.text();
+        if (!response.ok) throw new Error(payload.error || "حدث خطأ");
+        return payload;
+      }
+
+      function fillForm(store) {
+        const form = $("#settingsForm");
+        form.storeName.value = store?.storeName || "متجري";
+        form.botName.value = store?.botName || "NovaBOT";
+        form.whatsappPhone.value = store?.whatsappPhone || "";
+        form.prompt.value = store?.prompt || "أنت مساعد ذكي لمتجر. تحدث بالدارجة الجزائرية واختصر الردود.";
+        form.suggestions.value = (store?.suggestions || ["واش الأسعار؟", "كيفاه نطلب؟"]).join("\\n");
+        form.primaryColor.value = store?.colors?.primary || "#d4af37";
+        form.backgroundColor.value = store?.colors?.background || "#050505";
+        form.emoji.value = store?.emoji || "🤖";
+      }
+
+      function renderStore(store) {
+        appState.currentStore = store || null;
+        fillForm(store);
+        $("#todayConversations").textContent = store?.todayConversations || 0;
+        $("#todayOrders").textContent = store?.todayOrders || 0;
+        $("#totalMessages").textContent = store?.totalMessages || 0;
+        $("#totalOrders").textContent = store?.totalOrders || 0;
+        $("#syncMsg").textContent = store?.whatsappStatus ? `الحالة: ${store.whatsappStatus}` : "";
+        $("#webhookText").textContent = store?.ultraMsgInstanceId ? `${appState.baseUrl}/webhook/instance/${store.ultraMsgInstanceId}` : "سيظهر رابط الـ webhook بعد ربط Instance.";
+        $("#openStoreLink").classList.toggle("hidden", !store?.slug);
+        if (store?.slug) $("#openStoreLink").href = `/store/${store.slug}`;
+      }
+
+      function renderSelect() {
+        const select = $("#storeSelect");
+        select.innerHTML = "";
+        if (!appState.stores.length) {
+          select.innerHTML = '<option value="">متجر جديد</option>';
+          renderStore(null);
+          return;
+        }
+        appState.stores.forEach(store => {
+          const option = document.createElement("option");
+          option.value = store.id;
+          option.textContent = store.storeName;
+          select.appendChild(option);
+        });
+        renderStore(appState.stores[0]);
+      }
+
+      async function loadApp() {
+        const data = await api("/api/app");
+        appState.stores = data.stores || [];
+        appState.baseUrl = data.baseUrl || "";
+        renderSelect();
+      }
+
+      $("#storeSelect")?.addEventListener("change", (event) => {
+        renderStore(appState.stores.find(store => store.id === event.target.value));
+      });
+
+      $("#settingsForm")?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const payload = {
+          storeName: form.storeName.value,
+          botName: form.botName.value,
+          whatsappPhone: form.whatsappPhone.value,
+          prompt: form.prompt.value,
+          suggestions: form.suggestions.value,
+          primaryColor: form.primaryColor.value,
+          backgroundColor: form.backgroundColor.value,
+          emoji: form.emoji.value,
+        };
+        try {
+          const path = appState.currentStore ? `/api/stores/${appState.currentStore.id}/settings` : "/api/stores";
+          const method = appState.currentStore ? "PUT" : "POST";
+          const result = await api(path, { method, body: JSON.stringify(payload) });
+          $("#settingsMsg").textContent = "تم الحفظ بنجاح.";
+          await loadApp();
+          if (result.store?.id) $("#storeSelect").value = result.store.id;
+        } catch (err) {
+          $("#settingsMsg").textContent = err.message;
+        }
+      });
+
+      $("#syncBtn")?.addEventListener("click", async () => {
+        if (!appState.currentStore) return $("#syncMsg").textContent = "احفظ المتجر أولاً.";
+        try {
+          const result = await api(`/api/stores/${appState.currentStore.id}/whatsapp/sync`, { method: "POST" });
+          $("#syncMsg").textContent = `تم تجهيز الربط للـ Instance: ${result.instanceId}`;
+          $("#webhookText").textContent = result.webhookUrl;
+          $("#qrImage").src = `/api/stores/${appState.currentStore.id}/whatsapp/qr?t=${Date.now()}`;
+          $("#qrImage").classList.remove("hidden");
+          $("#qrEmpty").classList.add("hidden");
+          await loadApp();
+        } catch (err) {
+          $("#syncMsg").textContent = err.message;
+        }
+      });
+
+      $("#statusBtn")?.addEventListener("click", async () => {
+        if (!appState.currentStore) return $("#syncMsg").textContent = "احفظ المتجر أولاً.";
+        try {
+          const result = await api(`/api/stores/${appState.currentStore.id}/whatsapp/status`);
+          $("#syncMsg").textContent = `الحالة: ${result.status}`;
+          await loadApp();
+        } catch (err) {
+          $("#syncMsg").textContent = err.message;
+        }
+      });
+
+      loadApp().catch(err => {
+        $("#settingsMsg").textContent = err.message;
+      });
+    </script>
+  <% } %>
+</body>
+</html>

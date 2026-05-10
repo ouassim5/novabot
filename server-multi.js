@@ -3,26 +3,95 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const fs = require("fs");
+const cookieParser = require("cookie-parser");
+const mongoose = require("mongoose");
 const { google } = require("googleapis");
+const connectDB = require("./config/db");
+const Store = require("./models/Store");
+const Order = require("./models/Order");
+const authRoutes = require("./routes/auth");
+const dashboardRoutes = require("./routes/dashboard");
+const appApiRoutes = require("./routes/appApi");
+const { attachUser } = require("./middleware/auth");
+const {
+  updateDailyAnalytics,
+  getTodayAnalytics,
+  getTopQuestion: getAnalyticsTopQuestion,
+} = require("./utils/analytics");
+const {
+  incrementStoreMessages,
+  incrementStoreOrders,
+} = require("./middleware/storeAnalytics");
+const { sendMessage: sendUltraMsgMessage } = require("./services/ultramsg");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, "public")));
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+app.use(attachUser);
+app.use("/auth", authRoutes);
+app.use("/api", appApiRoutes);
+app.use("/dashboard", dashboardRoutes);
 
 // ============================================================
 // Google Sheets Setup
 // ============================================================
 const SHEET_ID = process.env.SHEET_ID || "1H9F_rf4FRsUNom2L5vMMp_CWWl5NXH7rg7qOt-oa66s";
 const SHEET_NAME = "جدول الطلبات";
+const savedOrderKeys = new Set();
 
 async function getSheets() {
-  const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS || "{}");
+  if (!process.env.GOOGLE_CREDENTIALS) {
+    throw new Error("GOOGLE_CREDENTIALS is missing");
+  }
+
+  const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+  if (credentials.private_key) {
+    credentials.private_key = credentials.private_key.replace(/\\n/g, "\n");
+  }
+
   const auth = new google.auth.GoogleAuth({
     credentials,
     scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
   return google.sheets({ version: "v4", auth });
+}
+
+function normalizeOrderField(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function buildOrderKey(storeId, phone, order) {
+  return [
+    storeId,
+    phone,
+    normalizeOrderField(order.name).toLowerCase(),
+    normalizeOrderField(order.product).toLowerCase(),
+    normalizeOrderField(order.address).toLowerCase(),
+  ].join("|");
+}
+
+function extractJsonObject(text) {
+  const clean = String(text || "").replace(/```(?:json)?|```/gi, "").trim();
+  const start = clean.indexOf("{");
+  const end = clean.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) {
+    throw new Error("No JSON object found in detection response");
+  }
+  return JSON.parse(clean.slice(start, end + 1));
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 async function saveOrder(storeId, storeName, phone, name, product, address, notes) {
@@ -46,14 +115,42 @@ async function saveOrder(storeId, storeName, phone, name, product, address, note
 }
 
 // ============================================================
-// المتاجر
+// المتاجر من MongoDB
 // ============================================================
-const STORES = JSON.parse(fs.readFileSync(path.join(__dirname, "stores.json"), "utf8"));
+async function findStoreByParam(storeId) {
+  const normalized = String(storeId || "").trim().toLowerCase();
+  const query = mongoose.Types.ObjectId.isValid(normalized)
+    ? { $or: [{ _id: normalized }, { slug: normalized }] }
+    : { slug: normalized };
+
+  return Store.findOne(query);
+}
+
+async function findStoreByWebhook(req) {
+  const routeStoreId = req.params.storeId;
+  const routeInstanceId = req.params.instanceId;
+  const payloadInstanceId =
+    req.body?.instanceId ||
+    req.body?.instance_id ||
+    req.body?.instance ||
+    req.body?.data?.instanceId ||
+    req.body?.data?.instance_id ||
+    req.body?.data?.instance;
+
+  if (routeStoreId) return findStoreByParam(routeStoreId);
+  if (routeInstanceId) return Store.findOne({ ultraMsgInstanceId: routeInstanceId });
+  if (payloadInstanceId) return Store.findOne({ ultraMsgInstanceId: payloadInstanceId });
+  if (process.env.DEFAULT_STORE) return findStoreByParam(process.env.DEFAULT_STORE);
+  return Store.findOne();
+}
 
 // ============================================================
 // Groq
 // ============================================================
-async function askGroq(systemPrompt, messages) {
+async function askGroq(systemPrompt, messages, storeId) {
+  if (!process.env.GROQ_API_KEY) throw new Error("GROQ_API_KEY is missing");
+  await incrementStoreMessages(storeId);
+
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -75,25 +172,66 @@ async function askGroq(systemPrompt, messages) {
 // ============================================================
 // كشف الطلب وحفظه في Sheets
 // ============================================================
-async function detectAndSaveOrder(storeId, storeName, phone, messages) {
-  const lastMessages = messages.slice(-6);
+async function detectAndSaveOrder(store, phone, messages, options = {}) {
+  const lastMessages = messages.slice(-10);
   const conversation = lastMessages.map(m => `${m.role === "user" ? "زبون" : "بوت"}: ${m.content}`).join("\n");
 
-  const detectionPrompt = `تحليل هذه المحادثة واستخراج معلومات الطلب إذا وُجد طلب مكتمل.
+  const detectionPrompt = `حلل هذه المحادثة واستخرج معلومات الطلب إذا وُجد طلب مكتمل.
+لا تعتبر الطلب مكتملًا إلا إذا توفر اسم الزبون + المنتج المطلوب + عنوان التوصيل.
+أجب بـ JSON صالح فقط بدون شرح وبدون Markdown.
 أجب بـ JSON فقط بهذا الشكل:
-{"hasOrder": true/false, "name": "", "product": "", "address": "", "notes": ""}
+{"hasOrder": true, "name": "", "phone": "", "product": "", "address": "", "notes": ""}
 
-إذا لم تكتمل المعلومات أجب: {"hasOrder": false}
+إذا لم تكتمل المعلومات أجب بهذا الشكل فقط: {"hasOrder": false}
 
 المحادثة:
 ${conversation}`;
 
   try {
-    const result = await askGroq(detectionPrompt, [{ role: "user", content: "استخرج معلومات الطلب" }]);
-    const clean = result.replace(/```json|```/g, "").trim();
-    const order = JSON.parse(clean);
-    if (order.hasOrder && order.name && order.product) {
-      await saveOrder(storeId, storeName, phone, order.name, order.product, order.address || "", order.notes || "");
+    const result = await askGroq(
+      detectionPrompt,
+      [{ role: "user", content: "استخرج معلومات الطلب المكتمل كـ JSON فقط" }],
+      store._id
+    );
+    const order = extractJsonObject(result);
+    const normalizedOrder = {
+      name: normalizeOrderField(order.name),
+      phone: normalizeOrderField(order.phone),
+      product: normalizeOrderField(order.product),
+      address: normalizeOrderField(order.address),
+      notes: normalizeOrderField(order.notes),
+    };
+
+    if (order.hasOrder && normalizedOrder.name && normalizedOrder.product && normalizedOrder.address) {
+      const orderPhone = normalizedOrder.phone || phone;
+      const orderKey = buildOrderKey(store._id.toString(), orderPhone, normalizedOrder);
+      if (savedOrderKeys.has(orderKey)) return false;
+
+      const sheetSaved = await saveOrder(
+        store._id.toString(),
+        store.storeName,
+        orderPhone,
+        normalizedOrder.name,
+        normalizedOrder.product,
+        normalizedOrder.address,
+        normalizedOrder.notes
+      );
+      if (!sheetSaved) console.warn("Order saved in MongoDB, but Google Sheets append failed.");
+
+      savedOrderKeys.add(orderKey);
+      await Order.create({
+        storeId: store._id,
+        userId: store.userId,
+        customerName: normalizedOrder.name,
+        phone: orderPhone,
+        product: normalizedOrder.product,
+        address: normalizedOrder.address,
+        notes: normalizedOrder.notes,
+        source: options.source || "web",
+        conversationId: options.conversationId || "",
+      });
+      await updateDailyAnalytics(store._id, { orderIncrement: 1 });
+      await incrementStoreOrders(store._id);
       return true;
     }
   } catch (err) {
@@ -110,15 +248,10 @@ const conversations = {};
 // ============================================================
 // WhatsApp
 // ============================================================
-async function sendWhatsApp(to, message) {
-  const instance = process.env.ULTRAMSG_INSTANCE;
-  const token = process.env.ULTRAMSG_TOKEN;
-  if (!instance || !token) return;
-  await fetch(`https://api.ultramsg.com/${instance}/messages/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({ token, to, body: message }),
-  });
+async function sendWhatsApp(store, to, message) {
+  const instanceId = store?.ultraMsgInstanceId || process.env.ULTRAMSG_INSTANCE;
+  if (!instanceId) return;
+  await sendUltraMsgMessage(instanceId, to, message);
 }
 
 // ============================================================
@@ -126,18 +259,30 @@ async function sendWhatsApp(to, message) {
 // ============================================================
 app.post("/store/:storeId/chat", async (req, res) => {
   const { storeId } = req.params;
-  const { messages, phone } = req.body;
-  const store = STORES[storeId];
+  const { messages, phone, sessionId } = req.body;
+  const store = await findStoreByParam(storeId);
   if (!store) return res.status(404).json({ error: "Store not found" });
   if (!messages || !Array.isArray(messages))
     return res.status(400).json({ error: "messages required" });
   try {
-    const reply = await askGroq(store.prompt, messages);
+    const conversationId = phone || sessionId || `web-${req.ip}`;
+    const lastUserMessage = [...messages].reverse().find(m => m.role === "user")?.content;
+    await updateDailyAnalytics(store._id, {
+      conversationId,
+      question: lastUserMessage,
+      messageIncrement: 1,
+    });
+
+    const reply = await askGroq(store.prompt, messages, store._id);
     // كشف الطلب وحفظه
     const allMessages = [...messages, { role: "assistant", content: reply }];
-    await detectAndSaveOrder(storeId, store.name, phone || "موقع الويب", allMessages);
-    res.json({ reply, store: { name: store.name, emoji: store.emoji } });
+    await detectAndSaveOrder(store, phone || "موقع الويب", allMessages, {
+      source: "web",
+      conversationId,
+    });
+    res.json({ reply, store: { name: store.storeName, emoji: store.emoji } });
   } catch (err) {
+    console.error("Chat error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -145,7 +290,7 @@ app.post("/store/:storeId/chat", async (req, res) => {
 // ============================================================
 // WhatsApp Webhook
 // ============================================================
-app.post("/webhook", async (req, res) => {
+async function handleWhatsAppWebhook(req, res) {
   res.sendStatus(200);
   const data = req.body?.data;
   if (!data || data.type !== "chat" || data.fromMe || data.from?.includes("@g.us")) return;
@@ -154,46 +299,71 @@ app.post("/webhook", async (req, res) => {
   if (!text) return;
   console.log(`📨 واتساب من ${sender}: ${text}`);
 
-  // افتراضياً استخدم أول متجر — يمكن تخصيصه لاحقاً
-  const storeId = process.env.DEFAULT_STORE || "9amis";
-  const store = STORES[storeId];
+  const store = await findStoreByWebhook(req);
   if (!store) return;
+  await updateDailyAnalytics(store._id, {
+    conversationId: sender,
+    question: text,
+    messageIncrement: 1,
+  });
 
-  if (!conversations[sender]) conversations[sender] = [];
-  conversations[sender].push({ role: "user", content: text });
-  if (conversations[sender].length > 10)
-    conversations[sender] = conversations[sender].slice(-10);
+  const conversationKey = `${store._id}:${sender}`;
+  if (!conversations[conversationKey]) conversations[conversationKey] = [];
+  conversations[conversationKey].push({ role: "user", content: text });
+  if (conversations[conversationKey].length > 10)
+    conversations[conversationKey] = conversations[conversationKey].slice(-10);
 
   try {
-    const reply = await askGroq(store.prompt, conversations[sender]);
-    conversations[sender].push({ role: "assistant", content: reply });
+    const reply = await askGroq(store.prompt, conversations[conversationKey], store._id);
+    conversations[conversationKey].push({ role: "assistant", content: reply });
     // كشف الطلب وحفظه
-    await detectAndSaveOrder(storeId, store.name, sender, conversations[sender]);
-    await sendWhatsApp(sender, reply);
+    await detectAndSaveOrder(store, sender, conversations[conversationKey], {
+      source: "whatsapp",
+      conversationId: sender,
+    });
+    await sendWhatsApp(store, sender, reply);
     console.log(`✅ رد: ${reply}\n`);
   } catch (err) {
-    await sendWhatsApp(sender, "عذراً، حدث خطأ مؤقت.");
+    console.error("WhatsApp webhook error:", err.message);
+    await sendWhatsApp(store, sender, "عذراً، حدث خطأ مؤقت.");
   }
-});
+}
+
+app.post("/webhook/:storeId", handleWhatsAppWebhook);
+app.post("/webhook/store/:storeId", handleWhatsAppWebhook);
+app.post("/webhook/instance/:instanceId", handleWhatsAppWebhook);
+app.post("/webhook", handleWhatsAppWebhook);
 
 // ============================================================
 // صفحة كل متجر (نفس الكود السابق)
 // ============================================================
-app.get("/store/:storeId", (req, res) => {
+app.get("/store/:storeId", async (req, res) => {
   const { storeId } = req.params;
-  const store = STORES[storeId];
+  const store = await findStoreByParam(storeId);
   if (!store) return res.status(404).send("متجر غير موجود");
+  const storeData = JSON.stringify({
+    id: store.slug || store._id.toString(),
+    name: store.storeName,
+    emoji: store.emoji,
+    suggestions: store.suggestions,
+    color: store.colors?.primary || "#d4af37",
+    bg: store.colors?.background || "#0a0800",
+  }).replace(/</g, "\\u003c");
+  const safeStoreName = escapeHtml(store.storeName);
+  const safeStoreEmoji = escapeHtml(store.emoji);
+  const primaryColor = escapeHtml(store.colors?.primary || "#d4af37");
+  const backgroundColor = escapeHtml(store.colors?.background || "#0a0800");
 
   const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>${store.name} — مساعد ذكي</title>
+<title>${safeStoreName} — مساعد ذكي</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--accent:${store.color};--bg:${store.bg}}
+:root{--accent:${primaryColor};--bg:${backgroundColor}}
 body{font-family:'Cairo',sans-serif;background:var(--bg);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
 body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
 .wrap{width:100%;max-width:460px;position:relative;z-index:1}
@@ -236,9 +406,9 @@ input::placeholder{color:rgba(255,255,255,.2)}
 <div class="wrap">
   <div class="header">
     <div style="display:flex;align-items:center;flex-direction:row-reverse">
-      <div class="avatar">${store.emoji}</div>
+      <div class="avatar">${safeStoreEmoji}</div>
       <div class="hinfo">
-        <div class="hname">${store.name}</div>
+        <div class="hname">${safeStoreName}</div>
         <div class="hstatus"><div class="dot"></div><span>متصل الآن</span></div>
       </div>
     </div>
@@ -249,23 +419,27 @@ input::placeholder{color:rgba(255,255,255,.2)}
     <input id="inp" type="text" placeholder="اكتب سؤالك هنا..." autocomplete="off"/>
     <button class="send-btn inactive" id="btn">↑</button>
   </div>
-  <div class="footer">مساعد ذكي مخصص لـ ${store.name}</div>
+  <div class="footer">مساعد ذكي مخصص لـ ${safeStoreName}</div>
 </div>
 <script>
-const STORE_ID="${storeId}",API_URL="/store/"+STORE_ID+"/chat";
-const SUGGESTED=${JSON.stringify(store.suggestions)};
+const STORE=${storeData};
+const STORE_ID=STORE.id,API_URL="/store/"+STORE_ID+"/chat";
+const SUGGESTED=STORE.suggestions;
+const SESSION_KEY="novabot-session-"+STORE_ID;
+let SESSION_ID=localStorage.getItem(SESSION_KEY);
+if(!SESSION_ID){SESSION_ID=Date.now().toString(36)+"-"+Math.random().toString(36).slice(2);localStorage.setItem(SESSION_KEY,SESSION_ID);}
 let history=[],loading=false;
 const msgsEl=document.getElementById("msgs"),inp=document.getElementById("inp"),btn=document.getElementById("btn");
 function scroll(){msgsEl.scrollTop=msgsEl.scrollHeight}
 function addMsg(role,text){
   const row=document.createElement("div");row.className="msg-row "+(role==="user"?"user":"bot");
-  if(role==="assistant"){const av=document.createElement("div");av.className="bot-avatar";av.textContent="${store.emoji}";row.appendChild(av);}
+  if(role==="assistant"){const av=document.createElement("div");av.className="bot-avatar";av.textContent=STORE.emoji;row.appendChild(av);}
   const b=document.createElement("div");b.className="bubble "+(role==="user"?"user":"bot");b.textContent=text;
   row.appendChild(b);msgsEl.appendChild(row);scroll();
 }
 function addTyping(){
   const row=document.createElement("div");row.className="msg-row bot";row.id="typing";
-  const av=document.createElement("div");av.className="bot-avatar";av.textContent="${store.emoji}";row.appendChild(av);
+  const av=document.createElement("div");av.className="bot-avatar";av.textContent=STORE.emoji;row.appendChild(av);
   const b=document.createElement("div");b.className="bubble bot";
   b.innerHTML='<div class="typing"><span></span><span></span><span></span></div>';
   row.appendChild(b);msgsEl.appendChild(row);scroll();
@@ -273,7 +447,16 @@ function addTyping(){
 function removeTyping(){const t=document.getElementById("typing");if(t)t.remove();}
 function showSuggested(){
   const d=document.createElement("div");d.id="suggested";
-  d.innerHTML='<div class="sug-pills">'+SUGGESTED.map(q=>'<button class="pill" onclick="sendMsg(\''+q+'\')">'+q+'</button>').join("")+'</div>';
+  const wrap=document.createElement("div");wrap.className="sug-pills";
+  SUGGESTED.forEach(q=>{
+    const pill=document.createElement("button");
+    pill.className="pill";
+    pill.type="button";
+    pill.textContent=q;
+    pill.addEventListener("click",()=>sendMsg(q));
+    wrap.appendChild(pill);
+  });
+  d.appendChild(wrap);
   msgsEl.appendChild(d);
 }
 function updateBtn(){btn.className="send-btn "+(inp.value.trim()&&!loading?"active":"inactive");}
@@ -282,7 +465,7 @@ async function sendMsg(text){
   inp.value="";const sug=document.getElementById("suggested");if(sug)sug.remove();updateBtn();
   history.push({role:"user",content:msg});addMsg("user",msg);loading=true;addTyping();
   try{
-    const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:history})});
+    const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:history,sessionId:SESSION_ID})});
     const data=await res.json();const reply=data.reply||"عذراً حاول مرة أخرى.";
     history.push({role:"assistant",content:reply});removeTyping();addMsg("assistant",reply);
   }catch{removeTyping();addMsg("assistant","خطأ في الاتصال.");}
@@ -291,7 +474,7 @@ async function sendMsg(text){
 inp.addEventListener("input",updateBtn);
 inp.addEventListener("keydown",e=>{if(e.key==="Enter")sendMsg();});
 btn.addEventListener("click",()=>sendMsg());
-addMsg("assistant","مرحباً بك في ${store.name} ${store.emoji}\\nأنا مساعدك الذكي — اسألني عن أي شيء!");
+addMsg("assistant","مرحباً بك في "+STORE.name+" "+STORE.emoji+"\\nأنا مساعدك الذكي — اسألني عن أي شيء!");
 showSuggested();
 </script>
 </body>
@@ -299,24 +482,74 @@ showSuggested();
   res.send(html);
 });
 
-// ---- الصفحة الرئيسية ----
-app.get("/", (req, res) => {
-  const list = Object.entries(STORES).map(([id, s]) =>
-    `<a href="/store/${id}" style="display:block;padding:16px;margin:8px 0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:white;text-decoration:none;font-family:Cairo,sans-serif;">
-      ${s.emoji} ${s.name} <span style="color:rgba(255,255,255,.4);font-size:13px;">/store/${id}</span>
-    </a>`
-  ).join("");
+// ---- لوحة تحكم صاحب المتجر ----
+app.get("/admin/:storeId", async (req, res) => {
+  const { storeId } = req.params;
+  const store = await findStoreByParam(storeId);
+  if (!store) return res.status(404).send("متجر غير موجود");
+
+  const adminToken = process.env.ADMIN_TOKEN;
+  if (adminToken && req.query.token !== adminToken) {
+    return res.status(401).send("غير مصرح");
+  }
+
+  const analytics = await getTodayAnalytics(store._id);
+  const topQuestion = getAnalyticsTopQuestion(analytics);
+  const todayOrders = analytics?.orderCount || 0;
+  const conversations = analytics?.conversationIds?.length || 0;
+  const safeStoreName = escapeHtml(store.storeName);
+  const safeTopQuestion = escapeHtml(topQuestion);
+  const primaryColor = escapeHtml(store.colors?.primary || "#d4af37");
+
   res.send(`<!DOCTYPE html><html lang="ar" dir="rtl">
-<head><meta charset="UTF-8"/><title>المتاجر</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo&display=swap" rel="stylesheet"/>
-<style>body{background:#0a0a0a;padding:40px;max-width:500px;margin:0 auto}</style>
-</head><body><h2 style="color:white;font-family:Cairo;margin-bottom:20px;">🏪 المتاجر المتاحة</h2>${list}</body></html>`);
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>لوحة تحكم ${safeStoreName}</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#090909;color:#fff;font-family:Cairo,sans-serif;padding:32px}
+.wrap{max-width:980px;margin:0 auto}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}
+h1{font-size:24px;margin:0;color:${primaryColor}}.sub{color:rgba(255,255,255,.55);font-size:13px;margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.card{background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:20px;min-height:130px}
+.label{color:rgba(255,255,255,.58);font-size:13px;margin-bottom:10px}.num{font-size:38px;font-weight:700;color:#fff;line-height:1}
+.question{font-size:18px;line-height:1.8;color:#fff}.count{color:rgba(255,255,255,.45);font-size:12px;margin-top:8px}
+.link{color:rgba(255,255,255,.6);font-size:13px;text-decoration:none;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 12px}
+@media(max-width:720px){body{padding:18px}.top{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:1fr}.num{font-size:32px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>لوحة تحكم ${safeStoreName}</h1>
+      <div class="sub">إحصائيات التشغيل الحالي للبوت</div>
+    </div>
+    <a class="link" href="/store/${encodeURIComponent(store.slug)}">فتح المتجر</a>
+  </div>
+  <div class="grid">
+    <div class="card"><div class="label">عدد المحادثات</div><div class="num">${conversations}</div></div>
+    <div class="card"><div class="label">الطلبات اليوم</div><div class="num">${todayOrders}</div></div>
+    <div class="card"><div class="label">أكثر سؤال يُطرح</div><div class="question">${safeTopQuestion}</div><div class="count">${analytics ? "من بيانات اليوم" : "لا توجد بيانات بعد"}</div></div>
+  </div>
+</div>
+</body></html>`);
+});
+
+// ---- التطبيق الموحد ----
+app.get(["/", "/app"], (req, res) => {
+  res.render("app", { user: req.user });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ Multi-Store + Google Sheets: http://localhost:${PORT}`);
-  Object.entries(STORES).forEach(([id, s]) => {
-    console.log(`  ${s.emoji} ${s.name}: /store/${id}`);
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`✅ NovaBOT SaaS: http://localhost:${PORT}`);
+      console.log(`  Dashboard: http://localhost:${PORT}/dashboard`);
+    });
+  })
+  .catch((err) => {
+    console.error("MongoDB connection failed:", err.message);
+    process.exit(1);
   });
-});
