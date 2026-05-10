@@ -32,11 +32,16 @@ async function sendMessage(instanceId, to, message) {
 async function getQrImage(instanceId) {
   const token = requireUltraMsg(instanceId);
   const response = await fetch(
-    `https://api.ultramsg.com/${instanceId}/instance/qr_image?${new URLSearchParams({ token })}`
+    `https://api.ultramsg.com/${instanceId}/instance/qr?token=${token}`
   );
-  const contentType = response.headers.get("content-type") || "image/png";
-  const buffer = await response.buffer();
-  return { contentType, buffer, ok: response.ok };
+  const data = await response.json();
+  // UltraMsg يرجع { qr: "data:image/png;base64,..." }
+  if (data.qr) {
+    const base64Data = data.qr.replace(/^data:image\/\w+;base64,/, "");
+    const buffer = Buffer.from(base64Data, "base64");
+    return { contentType: "image/png", buffer, ok: true };
+  }
+  throw new Error(data.error || "QR not available");
 }
 
 async function getInstanceStatus(instanceId) {
