@@ -32,7 +32,7 @@ async function sendMessage(instanceId, to, message) {
 async function getQrImage(instanceId) {
   const token = requireUltraMsg(instanceId);
   const response = await fetch(
-    `https://api.ultramsg.com/${instanceId}/instance/qr?${new URLSearchParams({ token })}`
+    `https://api.ultramsg.com/${instanceId}/instance/qr_image?${new URLSearchParams({ token })}`
   );
   const contentType = response.headers.get("content-type") || "image/png";
   const buffer = await response.buffer();
