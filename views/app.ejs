@@ -173,8 +173,8 @@
               </div>
               <div class="mt-4 flex flex-wrap gap-2">
                 <button id="syncBtn" class="rounded-lg bg-gold-400 px-4 py-3 font-bold text-black">ربط الرقم</button>
-                <button onclick="logoutWhatsApp()">قطع الاتصال</button>
                 <button id="statusBtn" class="rounded-lg border border-white/10 px-4 py-3 font-bold text-white">تحديث الحالة</button>
+                <button id="logoutBtn" class="rounded-lg border border-red-500/40 px-4 py-3 font-bold text-red-400 hover:bg-red-500/10">قطع الاتصال</button>
               </div>
               <p id="syncMsg" class="mt-3 text-sm text-white/55"></p>
               <p id="webhookText" class="mt-3 break-all rounded-lg bg-black p-3 text-xs text-white/45"></p>
@@ -309,6 +309,21 @@
         try {
           const result = await api(`/api/stores/${appState.currentStore.id}/whatsapp/status`);
           $("#syncMsg").textContent = `الحالة: ${result.status}`;
+          await loadApp();
+        } catch (err) {
+          $("#syncMsg").textContent = err.message;
+        }
+      });
+
+      $("#logoutBtn")?.addEventListener("click", async () => {
+        if (!appState.currentStore) return $("#syncMsg").textContent = "احفظ المتجر أولاً.";
+        if (!confirm("سيتم قطع اتصال الواتساب. هل أنت متأكد؟")) return;
+        try {
+          $("#syncMsg").textContent = "جاري قطع الاتصال...";
+          await api(`/api/stores/${appState.currentStore.id}/whatsapp/logout`, { method: "POST" });
+          $("#syncMsg").textContent = "تم قطع الاتصال ✓ اضغط ربط الرقم لمسح QR جديد";
+          $("#qrImage").classList.add("hidden");
+          $("#qrEmpty").classList.remove("hidden");
           await loadApp();
         } catch (err) {
           $("#syncMsg").textContent = err.message;

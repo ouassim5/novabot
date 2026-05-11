@@ -8,6 +8,7 @@ const {
   getInstancePool,
   getInstanceStatus,
   getQrImage,
+  logoutInstance,
   updateWebhook,
 } = require("../services/ultramsg");
 
@@ -22,29 +23,20 @@ async function uniqueSlug(name, currentStoreId) {
   const base = slugify(name);
   let slug = base;
   let index = 2;
-
   while (await Store.exists({ slug, _id: { $ne: currentStoreId } })) {
     slug = `${base}-${index}`;
     index += 1;
   }
-
   return slug;
 }
 
 function parseSuggestions(value) {
   if (Array.isArray(value)) return value.map(String).map(item => item.trim()).filter(Boolean).slice(0, 8);
-  return String(value || "")
-    .split(/\r?\n|,/)
-    .map(item => item.trim())
-    .filter(Boolean)
-    .slice(0, 8);
+  return String(value || "").split(/\r?\n|,/).map(item => item.trim()).filter(Boolean).slice(0, 8);
 }
 
 async function findOwnedStore(req, res, next) {
-  const store = await Store.findOne({
-    _id: req.params.storeId,
-    userId: req.user._id,
-  });
+  const store = await Store.findOne({ _id: req.params.storeId, userId: req.user._id });
   if (!store) return res.status(404).json({ error: "Store not found" });
   req.store = store;
   next();
@@ -52,17 +44,13 @@ async function findOwnedStore(req, res, next) {
 
 async function assignInstanceIfNeeded(store) {
   if (store.ultraMsgInstanceId) return store.ultraMsgInstanceId;
-
   const pool = getInstancePool();
   if (!pool.length) throw new Error("ULTRAMSG_INSTANCE_POOL is empty");
-
   const used = await Store.distinct("ultraMsgInstanceId", {
     ultraMsgInstanceId: { $in: pool },
     _id: { $ne: store._id },
   });
   const available = pool.find(instanceId => !used.includes(instanceId)) || pool[0];
-  if (!available) throw new Error("No free UltraMsg instance available");
-
   store.ultraMsgInstanceId = available;
   store.whatsappStatus = "qr";
   await store.save();
@@ -96,17 +84,14 @@ router.use(requireApiAuth);
 router.get("/app", async (req, res) => {
   const stores = await Store.find({ userId: req.user._id }).sort({ createdAt: -1 });
   const analyticsRows = await Analytics.find({
-    storeId: { $in: stores.map(store => store._id) },
+    storeId: { $in: stores.map(s => s._id) },
     date: startOfToday(),
   });
   const analyticsByStore = new Map(analyticsRows.map(row => [row.storeId.toString(), row]));
-  const orders = await Order.find({ userId: req.user._id })
-    .sort({ createdAt: -1 })
-    .limit(20);
-
+  const orders = await Order.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(20);
   res.json({
     user: { email: req.user.email },
-    stores: stores.map(store => serializeStore(store, analyticsByStore.get(store._id.toString()))),
+    stores: stores.map(s => serializeStore(s, analyticsByStore.get(s._id.toString()))),
     orders,
     baseUrl: process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`,
   });
@@ -117,26 +102,15 @@ router.post("/stores", async (req, res) => {
   const botName = String(req.body.botName || "NovaBOT").trim();
   const whatsappPhone = String(req.body.whatsappPhone || "").trim();
   const prompt = String(req.body.prompt || "").trim();
-
-  if (!storeName || !botName || !whatsappPhone || !prompt) {
+  if (!storeName || !botName || !whatsappPhone || !prompt)
     return res.status(400).json({ error: "اسم المتجر، اسم البوت، رقم واتساب والـ Prompt مطلوبة." });
-  }
-
   const store = await Store.create({
-    userId: req.user._id,
-    storeName,
-    botName,
-    whatsappPhone,
-    slug: await uniqueSlug(storeName),
-    prompt,
+    userId: req.user._id, storeName, botName, whatsappPhone,
+    slug: await uniqueSlug(storeName), prompt,
     suggestions: parseSuggestions(req.body.suggestions),
-    colors: {
-      primary: req.body.primaryColor || "#d4af37",
-      background: req.body.backgroundColor || "#050505",
-    },
+    colors: { primary: req.body.primaryColor || "#d4af37", background: req.body.backgroundColor || "#050505" },
     emoji: req.body.emoji || "🤖",
   });
-
   res.status(201).json({ store: serializeStore(store) });
 });
 
@@ -169,6 +143,20 @@ router.post("/stores/:storeId/whatsapp/sync", findOwnedStore, async (req, res) =
   }
 });
 
+// ---- قطع اتصال الواتساب وإعادة ضبط الحالة ----
+router.post("/stores/:storeId/whatsapp/logout", findOwnedStore, async (req, res) => {
+  try {
+    const instanceId = req.store.ultraMsgInstanceId;
+    if (!instanceId) return res.status(400).json({ error: "No instance assigned" });
+    await logoutInstance(instanceId);
+    req.store.whatsappStatus = "qr";
+    await req.store.save();
+    res.json({ ok: true, message: "تم قطع الاتصال — يمكنك الآن مسح QR جديد" });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 router.get("/stores/:storeId/whatsapp/qr", findOwnedStore, async (req, res) => {
   try {
     const instanceId = await assignInstanceIfNeeded(req.store);
@@ -194,18 +182,3 @@ router.get("/stores/:storeId/whatsapp/status", findOwnedStore, async (req, res) 
 });
 
 module.exports = router;
-
-const { logoutInstance } = require("../services/ultramsg");
-
-router.post("/stores/:storeId/whatsapp/logout", findOwnedStore, async (req, res) => {
-  try {
-    const instanceId = req.store.ultraMsgInstanceId;
-    if (!instanceId) return res.status(400).json({ error: "No instance" });
-    await logoutInstance(instanceId);
-    req.store.whatsappStatus = "qr";
-    await req.store.save();
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
