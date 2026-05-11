@@ -1,160 +1,1015 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NovaBOT - منصة شات بوت للمتاجر</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            gold: {
-              300: "#f2d16b",
-              400: "#d4af37",
-              500: "#b98f22"
-            }
-          },
-          fontFamily: {
-            cairo: ["Cairo", "sans-serif"]
-          }
-        }
-      }
-    };
-  </script>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NovaBOT — بوت واتساب ذكي لمتجرك</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --gold: #c9a84c;
+    --gold-light: #e8c97a;
+    --gold-dim: rgba(201,168,76,0.15);
+    --bg: #060608;
+    --bg2: #0c0c10;
+    --bg3: #111118;
+    --text: #f0ede8;
+    --muted: rgba(240,237,232,0.45);
+    --border: rgba(201,168,76,0.18);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow-x: hidden;
+    line-height: 1.7;
+  }
+
+  /* ─── NOISE TEXTURE ─── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  /* ─── GRID PATTERN ─── */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ─── HEADER ─── */
+  header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 0 24px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    background: rgba(6,6,8,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .header-inner {
+    max-width: 1140px;
+    margin: 0 auto;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+  }
+
+  .logo-mark {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, var(--gold), #8a6a1e);
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    color: #060608;
+    box-shadow: 0 0 24px rgba(201,168,76,0.35);
+  }
+
+  .logo-text {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+
+  nav { display: flex; align-items: center; gap: 8px; }
+
+  .nav-link {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: color 0.2s;
+  }
+  .nav-link:hover { color: var(--text); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'Cairo', sans-serif;
+    cursor: pointer;
+    transition: all 0.25s;
+    text-decoration: none;
+    border: none;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), #8a6a1e);
+    color: #060608;
+    box-shadow: 0 0 28px rgba(201,168,76,0.3);
+  }
+  .btn-gold:hover {
+    box-shadow: 0 0 40px rgba(201,168,76,0.5);
+    transform: translateY(-1px);
+  }
+
+  .btn-lg {
+    padding: 16px 36px;
+    font-size: 17px;
+    border-radius: 14px;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 120px 0 80px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(ellipse, rgba(201,168,76,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-content {
+    text-align: center;
+    max-width: 820px;
+    margin: 0 auto;
+    animation: fadeUp 0.8s ease both;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 13px;
+    color: var(--gold);
+    background: var(--gold-dim);
+    margin-bottom: 32px;
+    font-weight: 600;
+  }
+
+  .badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+    animation: pulse 2s infinite;
+    box-shadow: 0 0 8px var(--gold);
+  }
+
+  h1 {
+    font-size: clamp(38px, 6vw, 72px);
+    font-weight: 900;
+    line-height: 1.15;
+    letter-spacing: -1.5px;
+    margin-bottom: 24px;
+  }
+
+  .hero-accent { color: var(--gold); }
+
+  .hero-sub {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--muted);
+    max-width: 580px;
+    margin: 0 auto 40px;
+    font-weight: 400;
+    line-height: 1.8;
+  }
+
+  .hero-cta {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .hero-stats {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    margin-top: 72px;
+    padding-top: 48px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 32px;
+  }
+
+  .stat-item { text-align: center; }
+  .stat-num {
+    font-size: 36px;
+    font-weight: 900;
+    color: var(--gold);
+    font-family: 'Syne', sans-serif;
+    display: block;
+  }
+  .stat-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+
+  /* ─── PHONE MOCKUP ─── */
+  .phone-wrap {
+    position: relative;
+    width: 260px;
+    margin: 56px auto 0;
+    animation: floatY 4s ease-in-out infinite;
+  }
+
+  .phone {
+    width: 260px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 32px;
+    padding: 20px 16px;
+    box-shadow:
+      0 40px 80px rgba(0,0,0,0.6),
+      0 0 0 1px rgba(255,255,255,0.04),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .phone-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .phone-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #25d366, #128c7e);
+    display: grid;
+    place-items-center: center;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .phone-name { font-size: 14px; font-weight: 700; }
+  .phone-status { font-size: 11px; color: #25d366; }
+
+  .chat-msg {
+    margin-bottom: 10px;
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .chat-msg.bot .bubble-inner {
+    background: rgba(255,255,255,0.07);
+    border-radius: 16px 16px 16px 4px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    max-width: 85%;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.6;
+  }
+
+  .chat-msg.user {
+    display: flex;
+    justify-content: flex-start;
+  }
+
+  .chat-msg.user .bubble-inner {
+    background: linear-gradient(135deg, rgba(201,168,76,0.25), rgba(201,168,76,0.1));
+    border: 1px solid rgba(201,168,76,0.2);
+    border-radius: 16px 16px 4px 16px;
+    padding: 10px 14px;
+    font-size: 12.5px;
+    max-width: 80%;
+    color: var(--gold-light);
+    line-height: 1.6;
+    margin-right: auto;
+    margin-left: 0;
+  }
+
+  .typing-dots {
+    display: flex;
+    gap: 5px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 16px 16px 16px 4px;
+    width: fit-content;
+  }
+
+  .typing-dots span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold);
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+  .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+  /* ─── SECTIONS ─── */
+  section { padding: 100px 0; position: relative; z-index: 1; }
+
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 16px;
+  }
+
+  h2 {
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 900;
+    line-height: 1.2;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+  }
+
+  .section-sub {
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 560px;
+    line-height: 1.8;
+  }
+
+  .section-head {
+    margin-bottom: 64px;
+  }
+
+  /* ─── HOW IT WORKS ─── */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    position: relative;
+  }
+
+  .steps::before {
+    content: '';
+    position: absolute;
+    top: 42px;
+    right: calc(16.66% + 16px);
+    left: calc(16.66% + 16px);
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .step-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 28px;
+    position: relative;
+    transition: border-color 0.3s, transform 0.3s;
+  }
+
+  .step-card:hover {
+    border-color: var(--gold);
+    transform: translateY(-4px);
+  }
+
+  .step-num {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--gold-dim);
+    border: 1px solid var(--border);
+    display: grid;
+    place-items: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--gold);
+    margin-bottom: 24px;
+  }
+
+  .step-card h3 {
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 12px;
+  }
+
+  .step-card p { font-size: 15px; color: var(--muted); line-height: 1.8; }
+
+  /* ─── FEATURES ─── */
+  .features-bg {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .feature-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 32px 28px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 120px;
+    height: 120px;
+    background: radial-gradient(ellipse, rgba(201,168,76,0.08), transparent);
+    pointer-events: none;
+  }
+
+  .feature-card:hover {
+    border-color: rgba(201,168,76,0.4);
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+
+  .feature-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--gold-dim);
+    border: 1px solid var(--border);
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
+  .feature-card h3 {
+    font-size: 18px;
+    font-weight: 800;
+    margin-bottom: 10px;
+  }
+
+  .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.8; }
+
+  /* ─── PRICING ─── */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  .plan-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 40px 36px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .plan-card.featured {
+    border-color: var(--gold);
+    background: linear-gradient(160deg, rgba(201,168,76,0.08) 0%, var(--bg2) 60%);
+    box-shadow: 0 0 60px rgba(201,168,76,0.1);
+  }
+
+  .plan-badge {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: var(--gold);
+    color: #060608;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 100px;
+    letter-spacing: 1px;
+  }
+
+  .plan-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 16px;
+  }
+
+  .plan-price {
+    font-family: 'Syne', sans-serif;
+    font-size: 52px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+
+  .plan-price span {
+    font-size: 18px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .plan-desc {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 32px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .plan-features { list-style: none; margin-bottom: 36px; }
+
+  .plan-features li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    padding: 8px 0;
+    color: rgba(240,237,232,0.8);
+  }
+
+  .plan-features li::before {
+    content: '✓';
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.3);
+    display: grid;
+    place-items: center;
+    font-size: 12px;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+
+  /* ─── CTA SECTION ─── */
+  .cta-section {
+    padding: 100px 0;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  .cta-glow {
+    position: absolute;
+    bottom: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px;
+    height: 400px;
+    background: radial-gradient(ellipse, rgba(201,168,76,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 32px;
+    padding: 80px 60px;
+    max-width: 700px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cta-box::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: 20%;
+    left: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 40px 24px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .footer-text { font-size: 13px; color: var(--muted); }
+
+  /* ─── DIVIDER ─── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+    margin: 0;
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes floatY {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+    40% { transform: translateY(-7px); opacity: 1; }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% center; }
+    100% { background-position: 200% center; }
+  }
+
+  /* ─── SCROLL REVEAL ─── */
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 768px) {
+    .steps, .features-grid { grid-template-columns: 1fr; }
+    .steps::before { display: none; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    nav .nav-link { display: none; }
+    .hero-stats { gap: 24px; }
+    .cta-box { padding: 48px 28px; }
+  }
+</style>
 </head>
-<body class="bg-black text-white font-cairo">
-  <header class="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur">
-    <div class="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-      <a href="/" class="flex items-center gap-3">
-        <span class="grid h-10 w-10 place-items-center rounded-lg bg-gold-400 text-xl text-black">N</span>
-        <span class="text-lg font-extrabold tracking-wide">NovaBOT</span>
-      </a>
-      <nav class="hidden items-center gap-7 text-sm text-white/70 md:flex">
-        <a href="#how" class="hover:text-gold-300">كيف يعمل</a>
-        <a href="#pricing" class="hover:text-gold-300">الأسعار</a>
-        <a href="/auth/login" class="hover:text-gold-300">دخول</a>
-      </nav>
-      <a href="/auth/signup" class="rounded-lg bg-gold-400 px-4 py-2 text-sm font-bold text-black hover:bg-gold-300">ابدأ الآن</a>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- ─── HEADER ─── -->
+<header>
+  <div class="header-inner">
+    <a href="#" class="logo">
+      <div class="logo-mark">N</div>
+      <span class="logo-text">NovaBOT</span>
+    </a>
+    <nav>
+      <a href="#how" class="nav-link">كيف يعمل</a>
+      <a href="#features" class="nav-link">المميزات</a>
+      <a href="#pricing" class="nav-link">الأسعار</a>
+      <a href="/auth/login" class="btn btn-outline" style="font-size:14px;padding:9px 20px;">دخول</a>
+      <a href="/auth/signup" class="btn btn-gold" style="font-size:14px;padding:9px 20px;">ابدأ مجاناً</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ─── HERO ─── -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="container">
+    <div class="hero-content">
+      <div class="badge">
+        <span class="badge-dot"></span>
+        مدعوم بـ Groq AI — أسرع بوت في السوق
+      </div>
+
+      <h1>
+        متجرك يبيع<br/>
+        <span class="hero-accent">وأنت نايم</span>
+      </h1>
+
+      <p class="hero-sub">
+        ربط رقم واتساب متجرك ببوت ذكاء اصطناعي يرد على زبائنك، يشرح المقاسات، ويُتمم البيع — 24 ساعة بدون انقطاع.
+      </p>
+
+      <div class="hero-cta">
+        <a href="/auth/signup" class="btn btn-gold btn-lg">
+          ابدأ مجاناً الآن
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#how" class="btn btn-outline btn-lg">شاهد كيف يعمل</a>
+      </div>
+
+      <!-- Phone Mockup -->
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-header">
+            <div class="phone-avatar">🛍️</div>
+            <div>
+              <div class="phone-name">متجر الأناقة</div>
+              <div class="phone-status">● متصل الآن</div>
+            </div>
+          </div>
+          <div class="chat-msg bot">
+            <div class="bubble-inner">مرحباً! 👋 كيف أقدر أساعدك اليوم؟</div>
+          </div>
+          <div class="chat-msg user">
+            <div class="bubble-inner">واش عندكم قمصان مقاس L؟</div>
+          </div>
+          <div class="chat-msg bot">
+            <div class="bubble-inner">نعم! عندنا 3 موديلات بمقاس L 🎉<br/>من 2500 إلى 4500 دج. أي لون تحب؟</div>
+          </div>
+          <div class="chat-msg user">
+            <div class="bubble-inner">أبيض، بكم التوصيل؟</div>
+          </div>
+          <div class="chat-msg bot">
+            <div class="typing-dots">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-num">+500</span>
+          <span class="stat-label">متجر يستخدمنا</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">98%</span>
+          <span class="stat-label">رضا الزبائن</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">3 ثوانٍ</span>
+          <span class="stat-label">متوسط وقت الرد</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-num">24/7</span>
+          <span class="stat-label">بدون انقطاع</span>
+        </div>
+      </div>
     </div>
-  </header>
+  </div>
+</section>
 
-  <main>
-    <section class="relative min-h-screen overflow-hidden pt-28">
-      <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-25"></div>
-      <div class="absolute inset-0 bg-black/70"></div>
-      <div class="relative mx-auto grid max-w-7xl items-center gap-12 px-5 pb-20 pt-12 lg:grid-cols-[1.05fr_.95fr]">
-        <div class="max-w-3xl">
-          <span class="mb-5 inline-flex rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-2 text-sm font-semibold text-gold-300">
-            منصة SaaS مركزية للشات بوت التجاري
-          </span>
-          <h1 class="text-4xl font-extrabold leading-tight md:text-6xl">
-            حوّل كل متجر إلى مساعد مبيعات ذكي يعمل على الموقع وواتساب.
-          </h1>
-          <p class="mt-6 max-w-2xl text-lg leading-9 text-white/70">
-            NovaBOT يربط المتاجر بنظام رد تلقائي يفهم الدارجة، يستخرج الطلبات، ويحفظ الإحصائيات من لوحة واحدة بلون وهوية احترافية.
-          </p>
-          <div class="mt-9 flex flex-wrap gap-3">
-            <a href="/auth/signup" class="rounded-lg bg-gold-400 px-6 py-3 font-bold text-black hover:bg-gold-300">أنشئ حسابك</a>
-            <a href="/dashboard" class="rounded-lg border border-white/15 px-6 py-3 font-bold text-white hover:border-gold-400/60 hover:text-gold-300">افتح لوحة التحكم</a>
-          </div>
-        </div>
+<div class="divider"></div>
 
-        <div class="rounded-2xl border border-gold-400/20 bg-black/75 p-4 shadow-2xl shadow-gold-400/10">
-          <div class="rounded-xl border border-white/10 bg-[#0d0d0d] p-5">
-            <div class="flex items-center justify-between border-b border-white/10 pb-4">
-              <div>
-                <p class="text-sm text-white/50">لوحة المتجر</p>
-                <h2 class="text-xl font-bold text-gold-300">القميص الذهبي</h2>
-              </div>
-              <span class="rounded-lg bg-gold-400 px-3 py-2 text-black">👑</span>
-            </div>
-            <div class="mt-5 grid grid-cols-3 gap-3">
-              <div class="rounded-lg bg-white/5 p-4"><p class="text-2xl font-extrabold">87</p><span class="text-xs text-white/45">رسائل</span></div>
-              <div class="rounded-lg bg-white/5 p-4"><p class="text-2xl font-extrabold">14</p><span class="text-xs text-white/45">طلبات</span></div>
-              <div class="rounded-lg bg-white/5 p-4"><p class="text-2xl font-extrabold">4</p><span class="text-xs text-white/45">متاجر</span></div>
-            </div>
-            <div class="mt-5 space-y-3">
-              <div class="rounded-xl bg-white/5 p-4 text-sm text-white/75">الزبون: حاب نطلب قميص أبيض، اسمي محمد، العنوان وهران.</div>
-              <div class="mr-auto max-w-[85%] rounded-xl bg-gold-400 p-4 text-sm font-semibold text-black">تم تأكيد الطلب، وصلتنا معلوماتك وسيتم التواصل معك.</div>
-            </div>
-          </div>
-        </div>
+<!-- ─── HOW IT WORKS ─── -->
+<section id="how">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label">كيف يعمل</div>
+      <h2>3 خطوات وبوتك جاهز</h2>
+      <p class="section-sub">بدون كود، بدون تقنية معقدة — فقط اكتب تعليماتك وامسح الـ QR.</p>
+    </div>
+    <div class="steps">
+      <div class="step-card reveal">
+        <div class="step-num">١</div>
+        <h3>اكتب تعليمات متجرك</h3>
+        <p>أخبر البوت عن منتجاتك، أسعارك، وطريقة التوصيل. يفهم الدارجة الجزائرية 🇩🇿</p>
       </div>
-    </section>
-
-    <section id="how" class="border-t border-white/10 bg-[#050505] py-24">
-      <div class="mx-auto max-w-7xl px-5">
-        <div class="max-w-2xl">
-          <p class="font-bold text-gold-300">آلية العمل</p>
-          <h2 class="mt-3 text-3xl font-extrabold md:text-4xl">من متجر جديد إلى بوت يعمل خلال دقائق.</h2>
-        </div>
-        <div class="mt-12 grid gap-4 md:grid-cols-3">
-          <div class="rounded-xl border border-white/10 bg-white/[.04] p-6">
-            <span class="text-3xl font-extrabold text-gold-400">01</span>
-            <h3 class="mt-5 text-xl font-bold">أنشئ المتجر</h3>
-            <p class="mt-3 leading-8 text-white/60">العميل يدخل اسم المتجر، اسم البوت، رقم واتساب، الألوان، والـ System Prompt فقط.</p>
-          </div>
-          <div class="rounded-xl border border-white/10 bg-white/[.04] p-6">
-            <span class="text-3xl font-extrabold text-gold-400">02</span>
-            <h3 class="mt-5 text-xl font-bold">ردود ذكية مركزية</h3>
-            <p class="mt-3 leading-8 text-white/60">السيرفر يستخدم مفاتيح Groq وUltraMsg الخاصة بالمنصة ويربطها بكل متجر تلقائيًا.</p>
-          </div>
-          <div class="rounded-xl border border-white/10 bg-white/[.04] p-6">
-            <span class="text-3xl font-extrabold text-gold-400">03</span>
-            <h3 class="mt-5 text-xl font-bold">طلبات وإحصائيات</h3>
-            <p class="mt-3 leading-8 text-white/60">كل رسالة وكل طلب يتم تتبعه داخل لوحة التحكم مع حفظ الطلبات في قاعدة البيانات.</p>
-          </div>
-        </div>
+      <div class="step-card reveal" style="transition-delay:0.15s">
+        <div class="step-num">٢</div>
+        <h3>امسح الـ QR بواتساب</h3>
+        <p>فتح الأجهزة المرتبطة في واتساب وامسح الكود — رقمك يصبح البوت فوراً.</p>
       </div>
-    </section>
-
-    <section id="pricing" class="bg-black py-24">
-      <div class="mx-auto max-w-7xl px-5">
-        <div class="text-center">
-          <p class="font-bold text-gold-300">الاشتراكات</p>
-          <h2 class="mt-3 text-3xl font-extrabold md:text-4xl">أسعار واضحة قابلة للتطوير.</h2>
-        </div>
-        <div class="mt-12 grid gap-5 lg:grid-cols-3">
-          <div class="rounded-xl border border-white/10 bg-white/[.035] p-7">
-            <h3 class="text-xl font-bold">Starter</h3>
-            <p class="mt-2 text-white/55">للمتاجر الصغيرة</p>
-            <p class="mt-6 text-4xl font-extrabold">2,900 دج</p>
-            <ul class="mt-6 space-y-3 text-white/70">
-              <li>متجر واحد</li>
-              <li>واجهة شات بوت</li>
-              <li>لوحة طلبات أساسية</li>
-            </ul>
-          </div>
-          <div class="rounded-xl border border-gold-400 bg-gold-400 p-7 text-black shadow-2xl shadow-gold-400/20">
-            <h3 class="text-xl font-extrabold">Growth</h3>
-            <p class="mt-2 text-black/65">الأكثر طلبًا</p>
-            <p class="mt-6 text-4xl font-extrabold">5,900 دج</p>
-            <ul class="mt-6 space-y-3 text-black/75">
-              <li>حتى 5 متاجر</li>
-              <li>WhatsApp Webhook</li>
-              <li>إحصائيات ورسائل وطلبات</li>
-            </ul>
-          </div>
-          <div class="rounded-xl border border-white/10 bg-white/[.035] p-7">
-            <h3 class="text-xl font-bold">Agency</h3>
-            <p class="mt-2 text-white/55">للوكالات وأصحاب عدة عملاء</p>
-            <p class="mt-6 text-4xl font-extrabold">حسب الطلب</p>
-            <ul class="mt-6 space-y-3 text-white/70">
-              <li>متاجر غير محدودة</li>
-              <li>إعدادات مخصصة</li>
-              <li>دعم نشر على Railway</li>
-            </ul>
-          </div>
-        </div>
+      <div class="step-card reveal" style="transition-delay:0.3s">
+        <div class="step-num">٣</div>
+        <h3>ابدأ البيع تلقائياً</h3>
+        <p>البوت يرد، يشرح، يقنع، ويحفظ الطلبات — وأنت تتابع الإحصائيات من لوحة التحكم.</p>
       </div>
-    </section>
-  </main>
+    </div>
+  </div>
+</section>
 
-  <footer class="border-t border-white/10 bg-[#050505] py-8 text-center text-sm text-white/45">
-    NovaBOT © 2026 - منصة شات بوت للمتاجر
-  </footer>
+<div class="divider"></div>
+
+<!-- ─── FEATURES ─── -->
+<section id="features" class="features-bg">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="section-label">المميزات</div>
+      <h2>كل ما يحتاجه متجرك</h2>
+      <p class="section-sub">تقنية متقدمة في واجهة بسيطة — مصممة للتاجر الجزائري.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon">⚡</div>
+        <h3>رد فوري في ثوانٍ</h3>
+        <p>لا انتظار، لا تأخير. البوت يرد على زبائنك في أقل من 3 ثوانٍ — حتى في الساعة 3 صباحاً.</p>
+      </div>
+      <div class="feature-card reveal" style="transition-delay:0.1s">
+        <div class="feature-icon">🧠</div>
+        <h3>ذكاء اصطناعي متقدم</h3>
+        <p>يفهم الدارجة، يقنع الزبون، ويجيب على الأسئلة الصعبة بناءً على معلومات متجرك فقط.</p>
+      </div>
+      <div class="feature-card reveal" style="transition-delay:0.2s">
+        <div class="feature-icon">📊</div>
+        <h3>إحصائيات مباشرة</h3>
+        <p>تتبع المحادثات، الطلبات، والأسئلة الأكثر تكراراً — كل شيء في لوحة تحكم واحدة.</p>
+      </div>
+      <div class="feature-card reveal" style="transition-delay:0.3s">
+        <div class="feature-icon">🔒</div>
+        <h3>آمن ومحمي</h3>
+        <p>بياناتك ومحادثات زبائنك محمية. البوت لا يخزن معلومات حساسة ولا يشاركها.</p>
+      </div>
+      <div class="feature-card reveal" style="transition-delay:0.4s">
+        <div class="feature-icon">🎨</div>
+        <h3>شخصية متجرك</h3>
+        <p>خصّص اسم البوت، لونه، وأسلوب ردوده ليعكس هوية متجرك بشكل احترافي.</p>
+      </div>
+      <div class="feature-card reveal" style="transition-delay:0.5s">
+        <div class="feature-icon">📱</div>
+        <h3>واتساب بدون تعقيد</h3>
+        <p>مسح QR واحد ورقمك يصبح بوتاً ذكياً — بدون تطبيقات إضافية أو إعدادات معقدة.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── PRICING ─── -->
+<section id="pricing">
+  <div class="container">
+    <div class="section-head reveal" style="text-align:center">
+      <div class="section-label">الأسعار</div>
+      <h2>شفاف وبسيط</h2>
+      <p class="section-sub" style="margin:0 auto">ابدأ مجاناً وارقِّ عند الحاجة. لا رسوم خفية، لا مفاجآت.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="plan-card reveal">
+        <div class="plan-name">مجاني</div>
+        <div class="plan-price">0 <span>دج/شهر</span></div>
+        <p class="plan-desc">ابدأ الآن بدون بطاقة بنكية</p>
+        <ul class="plan-features">
+          <li>متجر واحد</li>
+          <li>100 رسالة يومياً</li>
+          <li>إحصائيات أساسية</li>
+          <li>دعم عبر البريد</li>
+        </ul>
+        <a href="/auth/signup" class="btn btn-outline" style="width:100%;justify-content:center;padding:14px;">ابدأ مجاناً</a>
+      </div>
+      <div class="plan-card featured reveal" style="transition-delay:0.15s">
+        <div class="plan-badge">الأكثر شعبية</div>
+        <div class="plan-name">احترافي</div>
+        <div class="plan-price">1500 <span>دج/شهر</span></div>
+        <p class="plan-desc">للتجار الجادين الذين يريدون النمو</p>
+        <ul class="plan-features">
+          <li>متاجر غير محدودة</li>
+          <li>رسائل غير محدودة</li>
+          <li>إحصائيات متقدمة</li>
+          <li>حفظ الطلبات في Sheets</li>
+          <li>أولوية في الدعم</li>
+        </ul>
+        <a href="/auth/signup" class="btn btn-gold" style="width:100%;justify-content:center;padding:14px;">ابدأ التجربة</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ─── CTA ─── -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <div class="container">
+    <div class="cta-box reveal">
+      <div class="section-label" style="margin-bottom:20px">هل أنت جاهز؟</div>
+      <h2 style="margin-bottom:16px">متجرك يستحق بوتاً ذكياً</h2>
+      <p style="color:var(--muted);font-size:17px;margin-bottom:40px;max-width:460px;margin-left:auto;margin-right:auto;">
+        انضم لأكثر من 500 تاجر يستخدمون NovaBOT لزيادة مبيعاتهم وتوفير وقتهم.
+      </p>
+      <a href="/auth/signup" class="btn btn-gold btn-lg">
+        ابدأ مجاناً — بدون بطاقة بنكية
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer>
+  <p class="footer-text">
+    © 2026 NovaBOT — بوت واتساب ذكي للمتاجر الجزائرية
+    &nbsp;·&nbsp;
+    <a href="#" style="color:var(--muted);text-decoration:none;">سياسة الخصوصية</a>
+    &nbsp;·&nbsp;
+    <a href="#" style="color:var(--muted);text-decoration:none;">شروط الاستخدام</a>
+  </p>
+</footer>
+
+<script>
+// ─── SCROLL REVEAL ───
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// ─── ANIMATED CHAT DEMO ───
+const messages = [
+  { role: 'bot', text: 'مرحباً! 👋 كيف أقدر أساعدك اليوم؟' },
+  { role: 'user', text: 'واش عندكم قمصان مقاس L؟' },
+  { role: 'bot', text: 'نعم! عندنا 3 موديلات بمقاس L 🎉\nمن 2500 إلى 4500 دج. أي لون تحب؟' },
+  { role: 'user', text: 'أبيض، بكم التوصيل؟' },
+  { role: 'bot', text: 'التوصيل 400 دج داخل الولاية ✅\nهل تريد أكمل الطلب؟' },
+  { role: 'user', text: 'نعم، اسمي محمد، وهران' },
+  { role: 'bot', text: 'تم تسجيل طلبك يا محمد! 🎉\nسيتم التواصل معك خلال 24 ساعة.' },
+];
+
+let msgIndex = 0;
+const chatContainer = document.querySelector('.phone .chat-msg.bot:last-child')?.parentElement;
+
+function addMessage() {
+  if (!chatContainer || msgIndex >= messages.length) {
+    msgIndex = 0;
+    setTimeout(() => {
+      const msgs = chatContainer?.querySelectorAll('.chat-msg:not(:first-child)');
+      msgs?.forEach(m => m.remove());
+      setTimeout(addMessage, 500);
+    }, 3000);
+    return;
+  }
+  const msg = messages[msgIndex];
+  const div = document.createElement('div');
+  div.className = `chat-msg ${msg.role}`;
+  div.innerHTML = `<div class="bubble-inner">${msg.text.replace(/\n/g, '<br>')}</div>`;
+  div.style.animation = 'fadeUp 0.4s ease both';
+  chatContainer?.appendChild(div);
+  msgIndex++;
+  setTimeout(addMessage, msg.role === 'bot' ? 2000 : 1200);
+}
+
+// Start animation after 2s
+setTimeout(() => {
+  if (chatContainer) {
+    chatContainer.innerHTML = '';
+    addMessage();
+  }
+}, 2000);
+</script>
 </body>
 </html>
