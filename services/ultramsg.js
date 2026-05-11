@@ -28,21 +28,32 @@ async function sendMessage(instanceId, to, message) {
 
 async function getQrImage(instanceId) {
   const token = requireUltraMsg(instanceId);
+  // إضافة timestamp لمنع التخزين المؤقت (Cache)
   const response = await fetch(
-    `https://api.ultramsg.com/${instanceId}/instance/qr?token=${token}`
+    `https://api.ultramsg.com/${instanceId}/instance/qr?token=${token}&t=${Date.now()}`
   );
-  const data = await response.json().catch(() => ({}));
-  const qrData = data.qr || data.QRcode || data.qrCode || null;
-  if (qrData && qrData.startsWith("data:image")) {
-    const base64Data = qrData.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64Data, "base64");
-    return { contentType: "image/png", buffer, ok: true };
+
+  // إذا كانت الاستجابة ليست ناجحة (مثلاً 400 أو 404)
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || "الرمز غير جاهز حالياً");
   }
-  if (qrData) {
-    const buffer = Buffer.from(qrData, "base64");
-    return { contentType: "image/png", buffer, ok: true };
+
+  // التحقق مما إذا كانت الاستجابة صورة أم نص خطأ JSON
+  const contentType = response.headers.get("content-type");
+  
+  if (contentType && contentType.includes("application/json")) {
+    const data = await response.json();
+    throw new Error(data.error || "QR not available");
   }
-  throw new Error(data.error || data.message || "QR not available");
+
+  // إذا كانت صورة، نقوم بتحويلها إلى Buffer
+  const buffer = await response.buffer();
+  return { 
+    contentType: contentType || "image/png", 
+    buffer, 
+    ok: true 
+  };
 }
 
 async function getInstanceStatus(instanceId) {
