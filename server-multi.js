@@ -329,11 +329,10 @@ async function handleWhatsAppWebhook(req, res) {
   }
 }
 
-app.post("/webhook/:storeId", handleWhatsAppWebhook);
-app.post("/webhook/store/:storeId", handleWhatsAppWebhook);
 app.post("/webhook/instance/:instanceId", handleWhatsAppWebhook);
+app.post("/webhook/store/:storeId", handleWhatsAppWebhook);
+app.post("/webhook/:storeId", handleWhatsAppWebhook);
 app.post("/webhook", handleWhatsAppWebhook);
-
 // ============================================================
 // صفحة كل متجر (نفس الكود السابق)
 // ============================================================
