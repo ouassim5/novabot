@@ -1,15 +1,16 @@
 {
   "name": "novabot",
-  "version": "1.0.0",
-  "description": "AI Chatbot with secure Claude API backend",
+  "version": "2.0.0",
+  "description": "NovaBOT — WhatsApp AI SaaS Platform",
   "main": "server-multi.js",
   "scripts": {
     "start": "node server-multi.js",
     "dev": "node server-multi.js"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "axios": "^1.16.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -19,7 +20,6 @@
     "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.4",
-    "node-fetch": "^2.7.0",
-    "node-telegram-bot-api": "^0.67.0"
+    "node-fetch": "^2.7.0"
   }
 }
