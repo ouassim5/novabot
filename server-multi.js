@@ -536,8 +536,12 @@ h1{font-size:24px;margin:0;color:${primaryColor}}.sub{color:rgba(255,255,255,.55
 });
 
 // ---- التطبيق الموحد ----
-app.get(["/", "/app"], (req, res) => {
-  res.render("app", { user: req.user });
+app.get("/", (req, res) => {
+  res.render("landing", { user: req.user || null });
+});
+
+app.get("/app", (req, res) => {
+  res.render("app", { user: req.user || null });
 });
 
 const PORT = process.env.PORT || 3000;
