@@ -24,29 +24,25 @@
     window.NOVABOT_USER = <%- JSON.stringify(user ? { email: user.email } : null) %>;
   </script>
 
-  <div class="min-h-screen">
-    <header class="sticky top-0 z-50 border-b border-white/10 bg-black/85 backdrop-blur">
-      <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-        <a href="/app" class="flex items-center gap-3">
-          <span class="grid h-10 w-10 place-items-center rounded-lg bg-gold-400 text-lg font-extrabold text-black">N</span>
-          <div>
-            <p class="text-base font-extrabold">NovaBOT</p>
-            <p class="text-xs text-white/45">WhatsApp AI SaaS</p>
-          </div>
-        </a>
-        <nav class="flex items-center gap-2 text-sm">
-          <a href="#pricing" class="hidden rounded-lg px-3 py-2 text-white/70 hover:text-gold-300 sm:block">الأسعار</a>
-          <% if (user) { %>
-            <form method="post" action="/auth/logout"><button class="rounded-lg border border-white/10 px-3 py-2 text-white/70">خروج</button></form>
-          <% } else { %>
+  <% if (!user) { %>
+    <div class="min-h-screen">
+      <header class="sticky top-0 z-50 border-b border-white/10 bg-black/85 backdrop-blur">
+        <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
+          <a href="/app" class="flex items-center gap-3">
+            <span class="grid h-10 w-10 place-items-center rounded-lg bg-gold-400 text-lg font-extrabold text-black">N</span>
+            <div>
+              <p class="text-base font-extrabold">NovaBOT</p>
+              <p class="text-xs text-white/45">WhatsApp AI SaaS</p>
+            </div>
+          </a>
+          <nav class="flex items-center gap-2 text-sm">
+            <a href="#pricing" class="hidden rounded-lg px-3 py-2 text-white/70 hover:text-gold-300 sm:block">الأسعار</a>
             <a href="#login" class="rounded-lg border border-white/10 px-3 py-2 text-white/70">دخول</a>
             <a href="#signup" class="rounded-lg bg-gold-400 px-3 py-2 font-bold text-black">ابدأ</a>
-          <% } %>
-        </nav>
-      </div>
-    </header>
+          </nav>
+        </div>
+      </header>
 
-    <% if (!user) { %>
       <main>
         <section class="relative overflow-hidden">
           <div class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1800&q=80')] bg-cover bg-center opacity-20"></div>
@@ -128,77 +124,301 @@
           </form>
         </section>
       </main>
-    <% } else { %>
-      <main class="mx-auto max-w-7xl px-4 py-6">
-        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p class="text-sm text-white/45"><%= user.email %></p>
-            <h1 class="text-3xl font-extrabold">لوحة التحكم</h1>
+    </div>
+  <% } else { %>
+    <!-- New Dashboard Layout (RTL) -->
+    <div class="flex h-screen bg-[#0f1225] text-white font-cairo overflow-hidden">
+      
+      <!-- Sidebar (Right) -->
+      <aside class="w-64 bg-[#13162b] border-l border-white/5 flex flex-col justify-between shrink-0">
+        <div>
+          <div class="p-6 flex items-center gap-3">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-[#5c62fa] text-lg font-extrabold text-white">N</span>
+            <span class="text-xl font-bold">NovaBOT</span>
           </div>
-          <a href="/store/" id="openStoreLink" class="hidden rounded-lg border border-gold-400/40 px-4 py-3 text-sm font-bold text-gold-300">فتح البوت</a>
+          
+          <nav class="mt-4 px-4 flex flex-col gap-2">
+            <button onclick="switchTab('dashboard')" id="tab-btn-dashboard" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all bg-[#1a1e36] text-white border border-[#5c62fa]/20 shadow-[0_0_15px_rgba(92,98,250,0.1)]">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              لوحة التحكم
+            </button>
+            <button onclick="switchTab('products')" id="tab-btn-products" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-white/60 hover:bg-white/5 transition-all">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+              المنتجات
+            </button>
+            <button onclick="switchTab('orders')" id="tab-btn-orders" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-white/60 hover:bg-white/5 transition-all">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+              الطلبات
+            </button>
+            <button onclick="switchTab('settings')" id="tab-btn-settings" class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold text-white/60 hover:bg-white/5 transition-all">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              الإعدادات
+            </button>
+          </nav>
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
-          <section class="rounded-xl border border-white/10 bg-white/[.04] p-4 sm:p-6">
-            <div class="flex items-center justify-between gap-3">
-              <div><h2 class="text-xl font-bold">الإعدادات</h2><p class="text-sm text-white/45">اسم البوت، الـ Prompt، والألوان.</p></div>
-              <select id="storeSelect" class="max-w-[170px] rounded-lg border border-white/10 bg-black px-3 py-2 text-sm"></select>
+        <div class="p-4">
+          <div class="bg-[#1a1e36] rounded-xl border border-white/5 p-4 mb-4">
+            <p class="text-xs text-white/50 mb-1">الخطة الحالية</p>
+            <h4 id="sidebarPlanName" class="font-bold text-white mb-2">جاري التحميل...</h4>
+            <div class="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+              <div class="h-full bg-[#5c62fa] w-1/3 rounded-full"></div>
+            </div>
+          </div>
+          
+          <form method="post" action="/auth/logout">
+            <button class="flex items-center gap-3 px-4 py-3 w-full rounded-lg text-sm font-semibold text-white/60 hover:text-white hover:bg-white/5 transition-all">
+              <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              تسجيل الخروج
+            </button>
+          </form>
+        </div>
+      </aside>
+
+      <!-- Main Content (Left) -->
+      <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <!-- Top Bar -->
+        <header class="h-20 flex items-center justify-between px-8 border-b border-white/5 bg-[#0f1225] shrink-0">
+          <div class="flex items-center gap-4">
+            <select id="storeSelect" class="bg-[#1a1e36] border border-white/10 rounded-lg px-4 py-2 text-sm text-white outline-none focus:border-[#5c62fa]">
+              <option value="">جاري التحميل...</option>
+            </select>
+            <a href="#" id="openStoreLink" target="_blank" class="hidden text-xs text-[#5c62fa] hover:underline font-bold">معاينة البوت</a>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-bold">
+              <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+              <span id="headerStatusText">متصل بـ WhatsApp</span>
+            </div>
+            <p class="text-sm font-semibold bg-[#1a1e36] px-4 py-2 rounded-lg border border-white/5"><%= user.email %></p>
+          </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="flex-1 overflow-y-auto p-8">
+          
+          <!-- Dashboard Tab -->
+          <div id="tab-content-dashboard" class="tab-content block">
+            <div class="mb-8">
+              <h1 class="text-3xl font-extrabold text-white">لوحة التحكم</h1>
+              <p class="text-white/50 mt-1">راقب نشاط بوت الواتساب الخاص بك</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- Card 1 -->
+              <div class="bg-[#1a1e36] border border-white/5 rounded-2xl p-6 flex items-center gap-5">
+                <div class="w-14 h-14 rounded-xl bg-[#5c62fa]/10 text-[#5c62fa] flex items-center justify-center">
+                   <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-white/50 mb-1 uppercase tracking-wider">المنتجات النشطة</p>
+                  <p id="statProducts" class="text-3xl font-extrabold text-white">0</p>
+                </div>
+              </div>
+
+              <!-- Card 2 -->
+              <div class="bg-[#1a1e36] border border-white/5 rounded-2xl p-6 flex items-center gap-5">
+                <div class="w-14 h-14 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                   <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-white/50 mb-1 uppercase tracking-wider">إجمالي الطلبات</p>
+                  <p id="statOrders" class="text-3xl font-extrabold text-white">0</p>
+                </div>
+              </div>
+
+              <!-- Card 3 -->
+              <div class="bg-[#1a1e36] border border-white/5 rounded-2xl p-6 flex items-center gap-5">
+                <div class="w-14 h-14 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                   <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-white/50 mb-1 uppercase tracking-wider">محادثات اليوم</p>
+                  <p id="statConversations" class="text-3xl font-extrabold text-white">0</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Products Tab -->
+          <div id="tab-content-products" class="tab-content hidden">
+            <div class="mb-8 flex items-center justify-between">
+              <div>
+                <h1 class="text-3xl font-extrabold text-white">المنتجات</h1>
+                <p class="text-white/50 mt-1">أدر كتالوج المنتجات للذكاء الاصطناعي</p>
+              </div>
+              <button onclick="openProductModal()" class="bg-[#5c62fa] hover:bg-[#4a4fdd] text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-colors shadow-lg shadow-[#5c62fa]/20">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                إضافة منتج
+              </button>
             </div>
 
-            <form id="settingsForm" class="mt-6 grid gap-4">
-              <div class="grid gap-4 sm:grid-cols-2">
-                <label class="text-sm text-white/65">اسم المتجر<input name="storeName" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400" required /></label>
-                <label class="text-sm text-white/65">اسم البوت<input name="botName" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400" required /></label>
+            <div class="bg-[#1a1e36] border border-white/5 rounded-2xl overflow-hidden">
+              <table class="w-full text-left text-sm text-white/70" dir="rtl">
+                <thead class="bg-white/5 text-xs uppercase font-bold text-white/50">
+                  <tr>
+                    <th class="px-6 py-4 rounded-tr-2xl">اسم المنتج</th>
+                    <th class="px-6 py-4">السعر (دج)</th>
+                    <th class="px-6 py-4">الوصف</th>
+                    <th class="px-6 py-4 rounded-tl-2xl">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="productsTableBody" class="divide-y divide-white/5">
+                  <tr><td colspan="4" class="px-6 py-12 text-center text-white/40">جاري التحميل...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Orders Tab -->
+          <div id="tab-content-orders" class="tab-content hidden">
+            <div class="mb-8">
+              <h1 class="text-3xl font-extrabold text-white">الطلبات</h1>
+              <p class="text-white/50 mt-1">تتبع المبيعات التي أنشأها البوت</p>
+            </div>
+
+            <div class="bg-[#1a1e36] border border-white/5 rounded-2xl overflow-hidden">
+              <table class="w-full text-left text-sm text-white/70" dir="rtl">
+                <thead class="bg-white/5 text-xs uppercase font-bold text-white/50">
+                  <tr>
+                    <th class="px-6 py-4 rounded-tr-2xl">العميل</th>
+                    <th class="px-6 py-4">رقم الهاتف</th>
+                    <th class="px-6 py-4">المنتج</th>
+                    <th class="px-6 py-4">العنوان</th>
+                    <th class="px-6 py-4 rounded-tl-2xl">التاريخ</th>
+                  </tr>
+                </thead>
+                <tbody id="ordersTableBody" class="divide-y divide-white/5">
+                  <tr><td colspan="5" class="px-6 py-12 text-center text-white/40">جاري التحميل...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Settings Tab -->
+          <div id="tab-content-settings" class="tab-content hidden">
+            <div class="mb-8">
+              <h1 class="text-3xl font-extrabold text-white">إعدادات المتجر</h1>
+              <p class="text-white/50 mt-1">قم بتكوين الذكاء الاصطناعي ومعرفات الواتساب</p>
+            </div>
+
+            <form id="settingsForm" class="grid gap-6 max-w-4xl pb-10">
+              <!-- General Info -->
+              <div class="bg-[#1a1e36] border border-white/5 rounded-2xl p-6">
+                <h2 class="text-lg font-bold text-white mb-4">المعلومات العامة</h2>
+                <div class="grid gap-4 md:grid-cols-2">
+                  <label class="text-xs font-bold text-white/50 uppercase">اسم المتجر
+                    <input name="storeName" class="mt-2 w-full bg-[#0f1225] border border-white/10 rounded-lg px-4 py-3 text-white outline-none focus:border-[#5c62fa]" required />
+                  </label>
+                  <label class="text-xs font-bold text-white/50 uppercase">اسم البوت
+                    <input name="botName" class="mt-2 w-full bg-[#0f1225] border border-white/10 rounded-lg px-4 py-3 text-white outline-none focus:border-[#5c62fa]" required />
+                  </label>
+                </div>
+                <div class="grid gap-4 md:grid-cols-3 mt-4">
+                  <label class="text-xs font-bold text-white/50 uppercase">اللون الأساسي
+                    <input name="primaryColor" type="color" class="mt-2 h-12 w-full bg-[#0f1225] border border-white/10 rounded-lg p-1" />
+                  </label>
+                  <label class="text-xs font-bold text-white/50 uppercase">لون الخلفية
+                    <input name="backgroundColor" type="color" class="mt-2 h-12 w-full bg-[#0f1225] border border-white/10 rounded-lg p-1" />
+                  </label>
+                  <label class="text-xs font-bold text-white/50 uppercase">الإيموجي
+                    <input name="emoji" class="mt-2 w-full bg-[#0f1225] border border-white/10 rounded-lg px-4 py-3 text-white outline-none focus:border-[#5c62fa]" />
+                  </label>
+                </div>
               </div>
-              <label class="text-sm text-white/65">رقم واتساب التاجر<input name="whatsappPhone" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400" required /></label>
-              <label class="text-sm text-white/65">System Prompt<textarea name="prompt" rows="6" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400" required></textarea></label>
-              <label class="text-sm text-white/65">Suggestions<textarea name="suggestions" rows="3" placeholder="كل اقتراح في سطر" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400"></textarea></label>
-              <div class="grid gap-4 sm:grid-cols-3">
-                <label class="text-sm text-white/65">اللون الأساسي<input name="primaryColor" type="color" class="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black p-1" /></label>
-                <label class="text-sm text-white/65">لون الخلفية<input name="backgroundColor" type="color" class="mt-2 h-12 w-full rounded-lg border border-white/10 bg-black p-1" /></label>
-                <label class="text-sm text-white/65">الإيموجي<input name="emoji" class="mt-2 w-full rounded-lg border border-white/10 bg-black px-4 py-3 text-white outline-none focus:border-gold-400" /></label>
+
+              <!-- AI Settings -->
+              <div class="bg-[#1a1e36] border border-white/5 rounded-2xl p-6">
+                <h2 class="text-lg font-bold text-white mb-4">إعدادات الذكاء الاصطناعي</h2>
+                <label class="text-xs font-bold text-white/50 uppercase">تعليمات البوت (Prompt)
+                  <textarea name="prompt" rows="5" class="mt-2 w-full bg-[#0f1225] border border-white/10 rounded-lg px-4 py-3 text-white outline-none focus:border-[#5c62fa]" required></textarea>
+                </label>
+                <label class="text-xs font-bold text-white/50 uppercase block mt-4">الاقتراحات السريعة (سؤال في كل سطر)
+                  <textarea name="suggestions" rows="3" class="mt-2 w-full bg-[#0f1225] border border-white/10 rounded-lg px-4 py-3 text-white outline-none focus:border-[#5c62fa]"></textarea>
+                </label>
               </div>
-              <button class="rounded-lg bg-gold-400 px-5 py-3 font-bold text-black hover:bg-gold-300">حفظ الإعدادات</button>
-              <p id="settingsMsg" class="text-sm text-white/50"></p>
+
+              <!-- WhatsApp Sync -->
+              <div class="bg-[#1a1e36] border border-white/5 rounded-2xl p-6 relative overflow-hidden">
+                <h2 class="text-lg font-bold text-white mb-2 relative z-10">ربط الواتساب (WhatsApp Sync)</h2>
+                <p class="text-sm text-white/60 mb-4 relative z-10">اربط رقم هاتفك ليستقبل الطلبات نيابة عنك.</p>
+                
+                <label class="text-xs font-bold text-white/50 uppercase relative z-10">رقم الهاتف (لإشعارات الطلبات)
+                  <input name="whatsappPhone" class="mt-2 w-full bg-[#0f1225] border border-white/10 rounded-lg px-4 py-3 text-white outline-none focus:border-[#5c62fa]" required />
+                </label>
+
+                <div class="mt-6 flex flex-col md:flex-row gap-6 relative z-10">
+                  <div class="bg-[#0f1225] border border-white/10 rounded-xl p-4 flex-1 text-center">
+                    <img id="qrImage" alt="WhatsApp QR" class="mx-auto hidden h-48 w-48 rounded-lg bg-white object-contain p-2" />
+                    <div id="qrEmpty" class="grid h-48 place-items-center rounded-lg border border-dashed border-white/15 text-sm text-white/30">QR Code سيظهر هنا</div>
+                  </div>
+                  <div class="flex-1 flex flex-col justify-center gap-3">
+                    <button type="button" id="syncBtn" class="bg-[#5c62fa] hover:bg-[#4a4fdd] text-white px-4 py-3 rounded-lg font-bold transition-colors">توليد QR للربط</button>
+                    <button type="button" id="statusBtn" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-3 rounded-lg font-bold transition-colors">التحقق من حالة الاتصال</button>
+                    <button type="button" id="logoutBtn" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 px-4 py-3 rounded-lg font-bold transition-colors mt-auto">قطع الاتصال بالرقم</button>
+                  </div>
+                </div>
+                <p id="syncMsg" class="mt-4 text-sm font-semibold text-emerald-400 relative z-10"></p>
+              </div>
+
+              <div class="flex items-center gap-4">
+                <button type="submit" class="bg-[#5c62fa] hover:bg-[#4a4fdd] text-white px-8 py-3 rounded-lg font-bold transition-colors shadow-lg shadow-[#5c62fa]/20">حفظ الإعدادات</button>
+                <p id="settingsMsg" class="text-sm text-emerald-400 font-semibold"></p>
+              </div>
             </form>
-          </section>
-
-          <aside class="grid gap-4">
-            <section class="rounded-xl border border-white/10 bg-white/[.04] p-4 sm:p-6">
-              <h2 class="text-xl font-bold">WhatsApp Sync</h2>
-              <p class="mt-2 text-sm leading-7 text-white/55">اضغط ربط الرقم ثم امسح QR من واتساب. بعد المصادقة يصبح رقمك هو البوت.</p>
-              <div class="mt-5 rounded-xl border border-white/10 bg-black p-4 text-center">
-                <img id="qrImage" alt="WhatsApp QR" class="mx-auto hidden h-56 w-56 rounded-lg bg-white object-contain p-2" />
-                <div id="qrEmpty" class="grid h-56 place-items-center rounded-lg border border-dashed border-white/15 text-sm text-white/45">QR يظهر هنا</div>
-              </div>
-              <div class="mt-4 flex flex-wrap gap-2">
-                <button id="syncBtn" class="rounded-lg bg-gold-400 px-4 py-3 font-bold text-black">ربط الرقم</button>
-                <button id="statusBtn" class="rounded-lg border border-white/10 px-4 py-3 font-bold text-white">تحديث الحالة</button>
-                <button id="logoutBtn" class="rounded-lg border border-red-500/40 px-4 py-3 font-bold text-red-400 hover:bg-red-500/10">قطع الاتصال</button>
-              </div>
-              <p id="syncMsg" class="mt-3 text-sm text-white/55"></p>
-              <p id="webhookText" class="mt-3 break-all rounded-lg bg-black p-3 text-xs text-white/45"></p>
-            </section>
-
-            <section class="rounded-xl border border-white/10 bg-white/[.04] p-4 sm:p-6">
-              <h2 class="text-xl font-bold">الإحصائيات</h2>
-              <div class="mt-4 grid grid-cols-2 gap-3">
-                <div class="rounded-lg bg-black p-4"><p id="todayConversations" class="text-3xl font-extrabold">0</p><span class="text-xs text-white/45">محادثات اليوم</span></div>
-                <div class="rounded-lg bg-black p-4"><p id="todayOrders" class="text-3xl font-extrabold">0</p><span class="text-xs text-white/45">طلبات مكتملة</span></div>
-                <div class="rounded-lg bg-black p-4"><p id="totalMessages" class="text-3xl font-extrabold">0</p><span class="text-xs text-white/45">كل الرسائل</span></div>
-                <div class="rounded-lg bg-black p-4"><p id="totalOrders" class="text-3xl font-extrabold">0</p><span class="text-xs text-white/45">كل الطلبات</span></div>
-              </div>
-            </section>
-          </aside>
+          </div>
         </div>
       </main>
-    <% } %>
-  </div>
+    </div>
 
-  <% if (user) { %>
+    <!-- Product Modal -->
+    <div id="productModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4 font-cairo" dir="rtl">
+      <div class="bg-[#1a1e36] border border-white/10 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+        <div class="p-6 border-b border-white/5 flex justify-between items-center">
+          <h3 class="text-xl font-bold text-white">إضافة منتج جديد</h3>
+          <button type="button" onclick="closeProductModal()" class="text-white/40 hover:text-white">✕</button>
+        </div>
+        <form id="productForm" class="p-6 grid gap-4">
+          <label class="text-xs font-bold text-white/50 uppercase">اسم المنتج
+            <input name="name" class="mt-2 w-full bg-[#0f1225] border border-white/10 rounded-lg px-4 py-3 text-white outline-none focus:border-[#5c62fa]" required />
+          </label>
+          <label class="text-xs font-bold text-white/50 uppercase">السعر (دج)
+            <input name="price" type="number" class="mt-2 w-full bg-[#0f1225] border border-white/10 rounded-lg px-4 py-3 text-white outline-none focus:border-[#5c62fa]" required />
+          </label>
+          <label class="text-xs font-bold text-white/50 uppercase">الوصف (اختياري)
+            <textarea name="description" rows="2" class="mt-2 w-full bg-[#0f1225] border border-white/10 rounded-lg px-4 py-3 text-white outline-none focus:border-[#5c62fa]"></textarea>
+          </label>
+          <div class="mt-4 flex gap-3">
+            <button type="submit" class="flex-1 bg-[#5c62fa] hover:bg-[#4a4fdd] text-white py-3 rounded-lg font-bold transition-colors">إضافة المنتج</button>
+            <button type="button" onclick="closeProductModal()" class="flex-1 bg-white/5 hover:bg-white/10 text-white py-3 rounded-lg font-bold transition-colors">إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script>
-      let appState = { stores: [], currentStore: null, baseUrl: "" };
+      let appState = { stores: [], currentStore: null, baseUrl: "", user: null, products: [], orders: [] };
       const $ = (selector) => document.querySelector(selector);
+      const $$ = (selector) => document.querySelectorAll(selector);
+
+      function switchTab(tabId) {
+        $$('.tab-content').forEach(el => {
+          el.classList.add('hidden');
+          el.classList.remove('block');
+        });
+        $('#tab-content-' + tabId).classList.remove('hidden');
+        $('#tab-content-' + tabId).classList.add('block');
+        
+        $$('[id^="tab-btn-"]').forEach(btn => {
+          btn.classList.remove('bg-[#1a1e36]', 'text-white', 'border', 'border-[#5c62fa]/20', 'shadow-[0_0_15px_rgba(92,98,250,0.1)]');
+          btn.classList.add('text-white/60');
+        });
+        
+        const activeBtn = $('#tab-btn-' + tabId);
+        activeBtn.classList.remove('text-white/60');
+        activeBtn.classList.add('bg-[#1a1e36]', 'text-white', 'border', 'border-[#5c62fa]/20', 'shadow-[0_0_15px_rgba(92,98,250,0.1)]');
+      }
 
       async function api(path, options = {}) {
         const response = await fetch(path, {
@@ -218,22 +438,65 @@
         form.whatsappPhone.value = store?.whatsappPhone || "";
         form.prompt.value = store?.prompt || "أنت مساعد ذكي لمتجر. تحدث بالدارجة الجزائرية واختصر الردود.";
         form.suggestions.value = (store?.suggestions || ["واش الأسعار؟", "كيفاه نطلب؟"]).join("\\n");
-        form.primaryColor.value = store?.colors?.primary || "#d4af37";
-        form.backgroundColor.value = store?.colors?.background || "#050505";
+        form.primaryColor.value = store?.colors?.primary || "#5c62fa";
+        form.backgroundColor.value = store?.colors?.background || "#0f1225";
         form.emoji.value = store?.emoji || "🤖";
       }
 
       function renderStore(store) {
         appState.currentStore = store || null;
         fillForm(store);
-        $("#todayConversations").textContent = store?.todayConversations || 0;
-        $("#todayOrders").textContent = store?.todayOrders || 0;
-        $("#totalMessages").textContent = store?.totalMessages || 0;
-        $("#totalOrders").textContent = store?.totalOrders || 0;
+        
+        $("#statProducts").textContent = appState.products.length || 0;
+        $("#statOrders").textContent = store?.totalOrders || 0;
+        $("#statConversations").textContent = store?.todayConversations || 0;
+        
+        if (store?.whatsappStatus === "authenticated") {
+          $("#headerStatusText").textContent = "متصل بـ WhatsApp";
+          $("#headerStatusText").previousElementSibling.classList.replace("bg-red-500", "bg-green-500");
+        } else {
+          $("#headerStatusText").textContent = "غير متصل";
+          $("#headerStatusText").previousElementSibling.classList.replace("bg-green-500", "bg-red-500");
+        }
+
         $("#syncMsg").textContent = store?.whatsappStatus ? `الحالة: ${store.whatsappStatus}` : "";
-        $("#webhookText").textContent = store?.ultraMsgInstanceId ? `${appState.baseUrl}/webhook/instance/${store.ultraMsgInstanceId}` : "سيظهر رابط الـ webhook بعد ربط Instance.";
         $("#openStoreLink").classList.toggle("hidden", !store?.slug);
         if (store?.slug) $("#openStoreLink").href = `/store/${store.slug}`;
+
+        renderTables();
+      }
+
+      function renderTables() {
+        const pBody = $("#productsTableBody");
+        if (!appState.products.length) {
+          pBody.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center text-white/40">لا توجد منتجات. أضف منتجك الأول!</td></tr>';
+        } else {
+          pBody.innerHTML = appState.products.map(p => `
+            <tr class="hover:bg-white/[0.02]">
+              <td class="px-6 py-4 font-semibold text-white">${p.name}</td>
+              <td class="px-6 py-4">${p.price} دج</td>
+              <td class="px-6 py-4 text-white/50 truncate max-w-[200px]">${p.description || "-"}</td>
+              <td class="px-6 py-4">
+                <button onclick="deleteProduct('${p._id}')" class="text-red-400 hover:text-red-300 font-bold text-xs bg-red-400/10 px-3 py-1.5 rounded-lg border border-red-400/20">حذف</button>
+              </td>
+            </tr>
+          `).join("");
+        }
+
+        const oBody = $("#ordersTableBody");
+        if (!appState.orders.length) {
+          oBody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-white/40">لا توجد طلبات حالياً. الذكاء الاصطناعي يتولى الأمر!</td></tr>';
+        } else {
+          oBody.innerHTML = appState.orders.map(o => `
+            <tr class="hover:bg-white/[0.02]">
+              <td class="px-6 py-4 font-semibold text-white">${o.name}</td>
+              <td class="px-6 py-4" dir="ltr">${o.phone}</td>
+              <td class="px-6 py-4">${o.product}</td>
+              <td class="px-6 py-4 text-white/50">${o.address}</td>
+              <td class="px-6 py-4 text-xs text-white/40">${new Date(o.createdAt).toLocaleDateString()}</td>
+            </tr>
+          `).join("");
+        }
       }
 
       function renderSelect() {
@@ -254,10 +517,22 @@
       }
 
       async function loadApp() {
-        const data = await api("/api/app");
-        appState.stores = data.stores || [];
-        appState.baseUrl = data.baseUrl || "";
-        renderSelect();
+        try {
+          const data = await api("/api/app");
+          appState.stores = data.stores || [];
+          appState.baseUrl = data.baseUrl || "";
+          appState.user = data.user || null;
+          appState.products = data.products || [];
+          appState.orders = data.orders || [];
+          
+          if (appState.user) {
+            const isPro = appState.user.plan === "pro";
+            $("#sidebarPlanName").textContent = isPro ? "Nova Pro (SaaS)" : "Nova Free";
+          }
+          renderSelect();
+        } catch (err) {
+          console.error(err);
+        }
       }
 
       $("#storeSelect")?.addEventListener("change", (event) => {
@@ -282,6 +557,7 @@
           const method = appState.currentStore ? "PUT" : "POST";
           const result = await api(path, { method, body: JSON.stringify(payload) });
           $("#settingsMsg").textContent = "تم الحفظ بنجاح.";
+          setTimeout(() => $("#settingsMsg").textContent = "", 3000);
           await loadApp();
           if (result.store?.id) $("#storeSelect").value = result.store.id;
         } catch (err) {
@@ -290,14 +566,14 @@
       });
 
       $("#syncBtn")?.addEventListener("click", async () => {
-        if (!appState.currentStore) return $("#syncMsg").textContent = "احفظ المتجر أولاً.";
+        if (!appState.currentStore) return alert("احفظ المتجر أولاً.");
         try {
+          $("#syncMsg").textContent = "جاري التحضير...";
           const result = await api(`/api/stores/${appState.currentStore.id}/whatsapp/sync`, { method: "POST" });
-          $("#syncMsg").textContent = `تم تجهيز الربط للـ Instance: ${result.instanceId}`;
-          $("#webhookText").textContent = result.webhookUrl;
           $("#qrImage").src = `/api/stores/${appState.currentStore.id}/whatsapp/qr?t=${Date.now()}`;
           $("#qrImage").classList.remove("hidden");
           $("#qrEmpty").classList.add("hidden");
+          $("#syncMsg").textContent = "امسح الكود الآن باستخدام واتساب.";
           await loadApp();
         } catch (err) {
           $("#syncMsg").textContent = err.message;
@@ -305,7 +581,7 @@
       });
 
       $("#statusBtn")?.addEventListener("click", async () => {
-        if (!appState.currentStore) return $("#syncMsg").textContent = "احفظ المتجر أولاً.";
+        if (!appState.currentStore) return;
         try {
           const result = await api(`/api/stores/${appState.currentStore.id}/whatsapp/status`);
           $("#syncMsg").textContent = `الحالة: ${result.status}`;
@@ -316,23 +592,59 @@
       });
 
       $("#logoutBtn")?.addEventListener("click", async () => {
-        if (!appState.currentStore) return $("#syncMsg").textContent = "احفظ المتجر أولاً.";
+        if (!appState.currentStore) return;
         if (!confirm("سيتم قطع اتصال الواتساب. هل أنت متأكد؟")) return;
         try {
-          $("#syncMsg").textContent = "جاري قطع الاتصال...";
           await api(`/api/stores/${appState.currentStore.id}/whatsapp/logout`, { method: "POST" });
-          $("#syncMsg").textContent = "تم قطع الاتصال ✓ اضغط ربط الرقم لمسح QR جديد";
           $("#qrImage").classList.add("hidden");
           $("#qrEmpty").classList.remove("hidden");
+          $("#syncMsg").textContent = "تم قطع الاتصال بنجاح.";
           await loadApp();
         } catch (err) {
           $("#syncMsg").textContent = err.message;
         }
       });
 
-      loadApp().catch(err => {
-        $("#settingsMsg").textContent = err.message;
+      function openProductModal() {
+        if (!appState.currentStore) return alert("الرجاء إنشاء وحفظ متجر أولاً");
+        $('#productModal').classList.remove('hidden');
+        $('#productModal').classList.add('flex');
+      }
+      function closeProductModal() {
+        $('#productModal').classList.add('hidden');
+        $('#productModal').classList.remove('flex');
+        $('#productForm').reset();
+      }
+
+      $("#productForm")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (!appState.currentStore) return;
+        const form = e.currentTarget;
+        const payload = {
+          name: form.name.value,
+          price: form.price.value,
+          description: form.description.value
+        };
+        try {
+          await api(`/api/stores/${appState.currentStore.id}/products`, { method: "POST", body: JSON.stringify(payload) });
+          closeProductModal();
+          await loadApp();
+        } catch (err) {
+          alert(err.message);
+        }
       });
+
+      window.deleteProduct = async function(id) {
+        if (!confirm("تأكيد حذف المنتج؟")) return;
+        try {
+          await api(`/api/stores/${appState.currentStore.id}/products/${id}`, { method: "DELETE" });
+          await loadApp();
+        } catch (err) {
+          alert(err.message);
+        }
+      }
+
+      loadApp();
     </script>
   <% } %>
 </body>

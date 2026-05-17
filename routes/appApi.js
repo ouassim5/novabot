@@ -2,6 +2,7 @@ const express = require("express");
 const Store = require("../models/Store");
 const Analytics = require("../models/Analytics");
 const Order = require("../models/Order");
+const Product = require("../models/Product");
 const { getTopQuestion, startOfToday } = require("../utils/analytics");
 const slugify = require("../utils/slug");
 const {
@@ -17,6 +18,16 @@ const router = express.Router();
 function requireApiAuth(req, res, next) {
   if (req.user) return next();
   return res.status(401).json({ error: "Authentication required" });
+}
+
+async function checkPlanLimits(req, res, next) {
+  if (req.user.plan === "free") {
+    const storeCount = await Store.countDocuments({ userId: req.user._id });
+    if (storeCount >= 1) {
+      return res.status(403).json({ error: "الخطة المجانية تسمح بمتجر واحد فقط. قم بالترقية للخطة الاحترافية (Pro) لإضافة المزيد." });
+    }
+  }
+  next();
 }
 
 async function uniqueSlug(name, currentStoreId) {
@@ -89,15 +100,18 @@ router.get("/app", async (req, res) => {
   });
   const analyticsByStore = new Map(analyticsRows.map(row => [row.storeId.toString(), row]));
   const orders = await Order.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(20);
+  const products = await Product.find({ storeId: { $in: stores.map(s => s._id) } }).sort({ createdAt: -1 });
+  
   res.json({
-    user: { email: req.user.email },
+    user: { email: req.user.email, plan: req.user.plan, planExpiresAt: req.user.planExpiresAt },
     stores: stores.map(s => serializeStore(s, analyticsByStore.get(s._id.toString()))),
     orders,
+    products,
     baseUrl: process.env.PUBLIC_URL || `${req.protocol}://${req.get("host")}`,
   });
 });
 
-router.post("/stores", async (req, res) => {
+router.post("/stores", checkPlanLimits, async (req, res) => {
   const storeName = String(req.body.storeName || "متجري").trim();
   const botName = String(req.body.botName || "NovaBOT").trim();
   const whatsappPhone = String(req.body.whatsappPhone || "").trim();
@@ -129,6 +143,23 @@ router.put("/stores/:storeId/settings", findOwnedStore, async (req, res) => {
   req.store.slug = await uniqueSlug(storeName, req.store._id);
   await req.store.save();
   res.json({ store: serializeStore(req.store) });
+});
+
+router.post("/stores/:storeId/products", findOwnedStore, async (req, res) => {
+  const { name, price, description } = req.body;
+  if (!name || price === undefined) return res.status(400).json({ error: "الاسم والسعر مطلوبان" });
+  const product = await Product.create({
+    storeId: req.store._id,
+    name: String(name).trim(),
+    price: Number(price),
+    description: String(description || "").trim()
+  });
+  res.json({ product });
+});
+
+router.delete("/stores/:storeId/products/:productId", findOwnedStore, async (req, res) => {
+  await Product.findOneAndDelete({ _id: req.params.productId, storeId: req.store._id });
+  res.json({ success: true });
 });
 
 router.post("/stores/:storeId/whatsapp/sync", findOwnedStore, async (req, res) => {
