@@ -1,15 +1,4 @@
 {
-  "name": "novabot",
-  "version": "2.0.0",
-  "description": "NovaBOT — WhatsApp AI SaaS Platform",
-  "main": "server-multi.js",
-  "scripts": {
-    "start": "node server-multi.js",
-    "dev": "node server-multi.js"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
@@ -20,6 +9,7 @@
     "googleapis": "^105.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.4",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "node-telegram-bot-api": "^0.67.0"
   }
 }
