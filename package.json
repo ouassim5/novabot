@@ -11,21 +11,15 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "agent-base": "^9.0.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "ejs": "^3.1.10",
     "express": "^4.18.2",
-    "gaxios": "^7.1.4",
-    "gcp-metadata": "^8.1.2",
-    "googleapis": "^171.4.0",
-    "https-proxy-agent": "^9.0.0",
-    "is-stream": "^4.0.1",
+    "googleapis": "^105.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.8.4",
-    "node-fetch": "^2.7.0",
-    "node-telegram-bot-api": "^0.67.0"
+    "node-fetch": "^2.7.0"
   }
 }
